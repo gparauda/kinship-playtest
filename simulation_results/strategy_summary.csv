@@ -1,8 +1,0 @@
-strategy,games,survival_rate,average_turns,median_turns,average_final_people,average_max_people,average_final_food,average_hunts,average_hunt_deaths,average_tech_upgrades,average_prayer_spent,average_sacrifices
-food,1000,0.997,49.924,50.0,0.997,5,58.018,13.657,4,0,0,0
-technology,1000,0.97,49.016,50.0,3.826,5,106.404,0,0,14.474,0,0
-balanced,1000,0.624,40.999,50.0,9.271,12.1,15.291,3.816,1.685,11.004,0,0
-random,1000,0.005,12.313,10.0,0.873,5.269,4.267,4.695,1.684,1.48,2.966,2.015
-hunt,1000,0.0,17.39,16.0,0,5,66.192,17.364,4.998,0,0,0
-worship,1000,0.0,11.588,11.0,0,5,12.681,0,0,4.991,8.45,4.991
-kinship,1000,0.0,4.373,4.0,4.294,5.667,0,0,0,0,0,0
