@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#17251f" />
+    <title>Kinship — Playtest</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Kinship home">
+          <span class="brand-mark">K</span>
+          <span>Kinship</span>
+        </a>
+
+        <div class="topbar-status">
+          <span class="status-dot"></span>
+          <span id="save-status">Playtest mode</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="dice-btn" class="button button-ghost">Rules &amp; dice</button>
+          <button id="new-game-btn" class="button button-ghost">New session</button>
+        </div>
+      </header>
+
+      <section id="setup-screen" class="setup-screen">
+        <!--
+          EDITABLE SETUP WORDING:
+          This entire section appears before a player starts the game.
+          You can freely change the eyebrow, title, paragraph, and rule chips.
+        -->
+        <div class="setup-copy">
+          <p class="eyebrow">Honors thesis playtest</p>
+          <h1>How long can your civilization last?</h1>
+          <p>
+            Allocate your people through one hundred turns of uncertainty.
+            Sustain the community and earn one Prestige chip in each era.
+          </p>
+
+          <div class="rule-chips">
+            <span>5 eras</span>
+            <span>100 turns</span>
+          </div>
+        </div>
+
+        <!--
+          EDITABLE SETUP FORM:
+          Change labels, dropdown choices, button wording, and the note below
+          without affecting the game mechanics.
+        -->
+        <form id="setup-form" class="setup-card">
+          <div class="card-heading">
+            <p class="eyebrow">Begin a session</p>
+            <h2>Playtest details</h2>
+          </div>
+
+          <label>
+            Player name
+            <input
+              id="player-name"
+              name="playerName"
+              maxlength="32"
+              autocomplete="name"
+              placeholder="Optional"
+            />
+          </label>
+              <label>
+  Gender
+  <select id="gender" name="gender">
+    <option value="prefer_not_to_say">Prefer not to say</option>
+    <option value="male">Male</option>
+    <option value="female">Female</option>
+  </select>
+</label>
+
+<label for="age">Age</label>
+<input
+  id="age"
+  type="number"
+  min="18"
+  max="100"
+  step="1"
+  required
+  placeholder="Enter your age"
+/>
+
+<label>
+  Game experience
+  <select id="game-experience" name="gameExperience">
+    <option value="never">Never</option>
+    <option value="few_times_a_year">A few times a year</option>
+    <option value="monthly">Monthly</option>
+    <option value="weekly_or_more">Weekly or more</option>
+  </select>
+</label>
+          <label>
+            Playtest condition
+            <select id="condition" name="condition">
+              <option value="baseline">Baseline</option>
+              <option value="guided">Guided strategy</option>
+            </select>
+          </label>
+
+          <label>
+            Session notes
+            <textarea
+              id="opening-notes"
+              name="openingNotes"
+              maxlength="280"
+              placeholder="Anything that may affect your play? (optional)"
+            ></textarea>
+          </label>
+            <label>
+ 
+          <button class="button button-primary" type="submit">
+            Start playtest <span>→</span>
+          </button>
+
+          <p class="form-note">
+            Your choices are recorded locally and can be downloaded as CSV after play.
+          </p>
+        </form>
+      </section>
+
+      <section id="game-screen" class="game-screen hidden" aria-live="polite">
+        <div class="game-header">
+          <div>
+            <p id="era-label" class="eyebrow">Era I</p>
+            <h1 id="turn-label">Turn 1 <span>/ 100</span></h1>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span>Journey</span>
+              <span id="progress-text">1%</span>
+            </div>
+
+            <div class="progress">
+              <div id="progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="game-layout">
+          <aside class="left-column">
+            <section class="panel event-panel">
+              <div class="panel-title-row">
+                <p class="eyebrow">This turn</p>
+                <span id="event-type" class="event-type">Threat</span>
+              </div>
+
+              <h2 id="event-title">First Turn</h2>
+              <p id="event-description">No event occurs during the first turn.</p>
+              <div id="event-effects" class="event-effects"></div>
+            </section>
+
+            <section class="panel log-panel">
+              <div class="panel-title-row">
+                <p class="eyebrow">Story so far</p>
+                <button id="clear-log" class="text-button">Clear</button>
+              </div>
+
+              <ol id="game-log" class="game-log"></ol>
+            </section>
+          </aside>
+
+          <section class="center-column">
+            <section class="panel board-panel">
+              <div class="panel-title-row">
+                <div>
+                  <p class="eyebrow">Community board</p>
+                  <h2>Allocate your people</h2>
+                </div>
+
+                <div class="available">
+                  <span id="available-count">5</span> available
+                </div>
+              </div>
+
+              <p class="allocation-help">
+                Food, Hunt, Technology, and Worship each use a die roll.
+                Kinship must be assigned in pairs and keeps those workers busy
+                until the project completes.
+              </p>
+
+              <div id="actions" class="actions"></div>
+
+              <div class="allocation-footer">
+                <div id="allocation-warning" class="allocation-warning">
+                  Allocate all available people to continue.
+                </div>
+
+                <button id="resolve-turn" class="button button-primary" disabled>
+                  Resolve turn <span>→</span>
+                </button>
+              </div>
+            </section>
+
+            <section class="panel prestige-panel">
+              <div class="panel-title-row">
+                <div>
+                  <p class="eyebrow">Long-term purpose</p>
+                  <h2>Prestige</h2>
+                </div>
+
+                <span id="prestige-total" class="prestige-total">0 / 5 chips</span>
+              </div>
+
+              <div id="prestige-track" class="prestige-track"></div>
+            </section>
+          </section>
+
+          <aside class="right-column">
+  <section class="panel resource-panel">
+    <p class="eyebrow">Community state</p>
+    <div id="resources" class="resources"></div>
+  </section>
+
+  <section class="panel tech-panel">
+    <div class="panel-title-row">
+      <p class="eyebrow">Craft</p>
+      <span id="tech-count" class="small-muted">0 / 3 sets</span>
+    </div>
+    <div id="technologies" class="technologies"></div>
+  </section>
+<section class="panel leaderboard-panel">
+  <div class="panel-title-row">
+    <div>
+      <p class="eyebrow">Community records</p>
+      <h2>Longest surviving</h2>
+    </div>
+    <span class="small-muted">Top 10</span>
+  </div>
+
+  <ol id="leaderboard-list" class="leaderboard-list">
+    <li class="leaderboard-empty">Loading records…</li>
+  </ol>
+</section>
+  <section class="panel preferences-panel">
+    <p class="eyebrow">Play preferences</p>
+
+    <label class="preference-option">
+      <input id="skip-protection" type="checkbox" />
+      <span>
+        <strong>Skip Prayer protection prompt</strong>
+        <small>Events still appear, but you will not be asked to spend Prayer.</small>
+      </span>
+    </label>
+
+    <label class="preference-option">
+      <input id="auto-prestige" type="checkbox" />
+      <span>
+        <strong>Auto-claim Prestige</strong>
+        <small>Automatically spends Prayer on the current era’s chip when affordable.</small>
+      </span>
+    </label>
+  </section>
+
+  <section class="panel controls-panel">
+    <p class="eyebrow">Playtest tools</p>
+    <button id="download-csv" class="button button-secondary">Download session CSV</button>
+    <button id="end-game" class="text-button danger">End session early</button>
+  </section>
+</aside>
+</div>
+      </section>
+    </main>
+
+    <dialog id="result-modal" class="result-modal">
+      <div id="result-content"></div>
+    </dialog>
+
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
