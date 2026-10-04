@@ -457,7 +457,7 @@ function escapeHTML(value) {
 function createNewState() {
   return {
     playerName: $("player-name").value.trim() || "Player",
-    condition: $("condition").value,
+    condition: "standard",
     openingNotes: $("opening-notes").value.trim(),
 
     gender: $("gender").value,
