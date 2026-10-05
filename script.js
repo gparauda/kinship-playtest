@@ -468,6 +468,7 @@ function createNewState() {
     people: 5,
     food: 7,
     prayer: 0,
+    innovation: 0,
 
     allocations: { F: 0, K: 0, H: 0, T: 0, W: 0 },
     kinProjects: [],
@@ -535,6 +536,10 @@ function restoreSavedGame() {
 
   try {
     state = JSON.parse(saved);
+    // Innovation was added after the first playtest save format.
+    state.innovation = Number.isInteger(state.innovation)
+      ? state.innovation
+      : 0;
 
     $("skip-protection").checked = Boolean(
       state.preferences?.skipProtection
@@ -640,9 +645,9 @@ function beginTurn() {
     state.startTurnNotes.push(message);
   }
 
-  // Food above 20 spoils: 25% of the amount above 20, rounded down.
+  // Food above 20 spoils: 50% of the amount above 20, rounded down.
   if (state.food > 20) {
-    const spoiledFood = Math.floor((state.food - 20) / 4);
+    const spoiledFood = Math.floor((state.food - 20) / 2);
 
     if (spoiledFood > 0) {
       state.food -= spoiledFood;
@@ -891,6 +896,11 @@ function renderResources() {
     </div>
 
     <div class="resource">
+      <span class="resource-value">${state.innovation}</span>
+      <span class="resource-label">Innovation</span>
+    </div>
+
+    <div class="resource">
       <span class="resource-value">${event.threat}</span>
       <span class="resource-label">Threat</span>
     </div>
@@ -908,7 +918,7 @@ function renderTechnologies() {
 
   $("tech-count").textContent = `${readySets} ready set${
     readySets === 1 ? "" : "s"
-  }`;
+  } · ${state.innovation} Innovation`;
 
   $("technologies").innerHTML = materials
     .map((material) => {
@@ -1243,6 +1253,11 @@ function availableUpgradeChoices() {
 function hasAvailableUpgrade() {
   return availableUpgradeChoices().length > 0;
 }
+
+function innovationCost(choice) {
+  // A face's first improvement costs one set; its second costs two.
+  return (state.upgrades[choice.die][choice.side] || 0) + 1;
+}
 function resolveTurn() {
   if (state.gameOver || availablePeople() !== 0) return;
 
@@ -1264,6 +1279,7 @@ function resolveTurn() {
     peopleStart: state.people,
     foodStart: state.food,
     prayerStart: state.prayer,
+    innovationStart: state.innovation,
 
     foodWorkers: state.allocations.F,
     kinshipWorkers: state.allocations.K,
@@ -1388,18 +1404,15 @@ function resolveTurn() {
     state.materials.Rock -= 1;
 
     completedSets += 1;
-    state.choiceQueue.push({ type: "technology", research });
   }
 
   if (completedSets > 0) {
+    state.innovation += completedSets;
+    state.choiceQueue.push({ type: "technology", research });
     results.push(
       `Technology: completed ${completedSets} set${
         completedSets === 1 ? "" : "s"
-      } and earned ${
-        completedSets === 1
-          ? "an upgrade choice"
-          : `${completedSets} upgrade choices`
-      }.`
+      } and saved ${completedSets} Innovation.`
     );
   }
 
@@ -1487,6 +1500,7 @@ function resolveTurn() {
   research.peopleEnd = state.people;
   research.foodEnd = state.food;
   research.prayerEnd = state.prayer;
+  research.innovationEnd = state.innovation;
   research.result = results.join(" ");
 
   state.researchRows.push(research);
@@ -1508,6 +1522,7 @@ function resolveTurn() {
     people: research.peopleEnd,
     food: research.foodEnd,
     prayer: research.prayerEnd,
+    innovation: research.innovationEnd,
     result: research.result,
   });
 
@@ -1559,7 +1574,7 @@ function processChoiceQueue() {
   saveGame();
 
   if (choice.type === "technology") {
-    showTechnologyUpgrade(choice.research);
+    showTechnologyUpgrade(choice.research, choice.free === true);
   }
 
   if (choice.type === "material") {
@@ -1587,6 +1602,7 @@ function finishTurn() {
     latestTurn.peopleEnd = state.people;
     latestTurn.foodEnd = state.food;
     latestTurn.prayerEnd = state.prayer;
+    latestTurn.innovationEnd = state.innovation;
 
     syncTurnToSupabase(latestTurn);
   }
@@ -1759,7 +1775,7 @@ function dieGridHTML() {
 
       <section class="die-panel">
         <h3>Technology die</h3>
-        <p>One Stick, one Rope, and one Rock create a Technology set.</p>
+        <p>One Stick, one Rope, and one Rock create a Technology set and save 1 Innovation.</p>
         <div class="die-faces">${technologyFaces}</div>
       </section>
 
@@ -1770,8 +1786,10 @@ function dieGridHTML() {
       </section>
     </div>
   `;
-}function showTechnologyUpgrade(research) {
-  const choices = availableUpgradeChoices();
+}function showTechnologyUpgrade(research, isFree = false) {
+  const choices = availableUpgradeChoices().filter(
+    (choice) => isFree || innovationCost(choice) <= state.innovation
+  );
 
   if (choices.length === 0) {
     processChoiceQueue();
@@ -1780,11 +1798,15 @@ function dieGridHTML() {
 
   $("result-content").innerHTML = `
     <div class="result-inner upgrade-modal">
-      <p class="eyebrow">Technology complete</p>
+      <p class="eyebrow">${isFree ? "Devout Sacrifice" : "Technology complete"}</p>
       <h2>Choose a permanent upgrade</h2>
       <p>
-        Each physical die side can be upgraded twice. W1/W2 can only become
-        Devout once; Hunt Skulls cannot be upgraded.
+        ${
+          isFree
+            ? "This Devout Sacrifice upgrade costs no Innovation."
+            : `You have ${state.innovation} saved Innovation. A face's first upgrade costs 1; its second costs 2.`
+        }
+        W1/W2 can only become Devout once; Hunt Skulls cannot be upgraded.
       </p>
 
       ${dieGridHTML()}
@@ -1798,7 +1820,11 @@ function dieGridHTML() {
                 data-index="${index}"
               >
                 <strong>${choice.label}</strong>
-                <small>${choice.description}</small>
+                <small>${choice.description} ${
+                  isFree
+                    ? "Free upgrade."
+                    : `Cost: ${innovationCost(choice)} Innovation.`
+                }</small>
               </button>
             `
           )
@@ -1813,12 +1839,18 @@ function dieGridHTML() {
     button.addEventListener("click", () => {
       const choice = choices[Number(button.dataset.index)];
 
+      if (!isFree) {
+        const cost = innovationCost(choice);
+        if (state.innovation < cost) return;
+        state.innovation -= cost;
+      }
+
       state.upgrades[choice.die][choice.side] += 1;
 
       addLog(
         `${choice.label} was upgraded to +${
           state.upgrades[choice.die][choice.side]
-        }.`
+        }${isFree ? " for free." : "."}`
       );
 
       if (research) {
@@ -1968,6 +2000,7 @@ function showSacrificeChoice(isDevout, research) {
                   state.choiceQueue.unshift({
                     type: "technology",
                     research,
+                    free: true,
                   });
 
                   return "Devout Sacrifice reward: 1 free Technology upgrade.";
@@ -2099,8 +2132,8 @@ function rulesHTML() {
       <p>
         At the end of every turn, each person eats 1 Food. If the community
         cannot feed everyone, 1 person is lost. At the beginning of a turn,
-        Food above 20 spoils: lose 25% of the amount above 20, rounded down.
-        For example, 28 Food loses 2 Food.
+        Food above 20 spoils: lose 50% of the amount above 20, rounded down.
+        For example, 28 Food loses 4 Food.
       </p>
 
       <h3>Hunting and Threat</h3>
@@ -2131,11 +2164,11 @@ function rulesHTML() {
       <h3>Technology</h3>
       <p>
         Technology rolls give Stick, Rope, or Rock. One of each completes a
-        set and gives a permanent die-face upgrade. Each physical eligible
-        side can be upgraded twice, except W1/W2, which can only become Devout
-        once. Hunt Skulls and Technology faces cannot be upgraded. Once every
-        eligible upgrade is exhausted, Technology sets can no longer be
-        completed.
+        set and saves 1 Innovation. A face's first upgrade costs 1 saved
+        Innovation and its second costs 2. Each physical eligible side can be
+        upgraded twice, except W1/W2, which can only become Devout once. Hunt
+        Skulls and Technology faces cannot be upgraded. Once every eligible
+        upgrade is exhausted, Technology sets can no longer be completed.
       </p>
 
       <h3>Worship and Sacrifice</h3>
