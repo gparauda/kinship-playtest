@@ -910,15 +910,7 @@ function renderResources() {
 function renderTechnologies() {
   const materials = ["Stick", "Rope", "Rock"];
 
-  const readySets = Math.min(
-    state.materials.Stick,
-    state.materials.Rope,
-    state.materials.Rock
-  );
-
-  $("tech-count").textContent = `${readySets} ready set${
-    readySets === 1 ? "" : "s"
-  } · ${state.innovation} Innovation`;
+  $("tech-count").textContent = `${state.innovation} Innovation`;
 
   $("technologies").innerHTML = materials
     .map((material) => {
