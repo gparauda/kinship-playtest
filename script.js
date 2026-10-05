@@ -355,6 +355,7 @@ async function startRemoteSession() {
     gender: state.gender,
     age: state.age,
     gameExperience: state.gameExperience,
+    firstGame: state.firstGame,
   });
 
   if (data?.sessionId) {
@@ -463,6 +464,7 @@ function createNewState() {
     gender: $("gender").value,
     age: Number($("age").value),
     gameExperience: $("game-experience").value,
+    firstGame: $("first-game").value === "yes",
 
     turn: 1,
     people: 5,
@@ -1267,6 +1269,7 @@ function resolveTurn() {
     gender: state.gender,
     age: Number($("age").value),
     gameExperience: state.gameExperience,
+    firstGame: state.firstGame,
 
     peopleStart: state.people,
     foodStart: state.food,
@@ -1506,6 +1509,7 @@ function resolveTurn() {
     gender: research.gender,
     age: Number($("age").value),
     gameExperience: research.gameExperience,
+    firstGame: research.firstGame,
     foodWorkers: research.foodWorkers,
     kinshipWorkers: research.kinshipWorkers,
     huntWorkers: research.huntWorkers,

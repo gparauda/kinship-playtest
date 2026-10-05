@@ -2,3 +2,7 @@
 ALTER TABLE public.kinship_turns
   ADD COLUMN IF NOT EXISTS innovation_start integer NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS innovation_end integer NOT NULL DEFAULT 0;
+
+-- Record the required pre-playtest response for new sessions.
+ALTER TABLE public.kinship_sessions
+  ADD COLUMN IF NOT EXISTS first_game boolean;
