@@ -881,6 +881,41 @@ body {
   text-align: center;
 }
 
+.upgrade-die-face {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+
+.upgrade-die-face:hover,
+.upgrade-die-face:focus-visible {
+  border-color: var(--moss);
+  background: #f4f8ee;
+  outline: 2px solid transparent;
+}
+
+.face-detail {
+  position: absolute;
+  z-index: 2;
+  width: min(240px, calc(100vw - 48px));
+  margin-top: 64px;
+  padding: 9px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font: 10px/1.4 Manrope, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity .15s, transform .15s;
+}
+
+.die-face { position: relative; }
+.upgrade-die-face:hover .face-detail,
+.upgrade-die-face:focus-visible .face-detail { opacity: 1; transform: translateY(0); }
+
+.save-innovation { margin-top: 16px; }
+
 .die-face small {
   color: var(--muted);
   font: 700 8px "DM Mono", monospace;

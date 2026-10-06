@@ -139,6 +139,7 @@ Deno.serve(async (request) => {
         hunt_skulls: turn.huntSkulls ?? null,
         hunt_total: turn.huntTotal ?? null,
         hunt_outcome: turn.huntOutcome ?? null,
+        hunt_target: turn.huntTarget ?? null,
         result_summary: turn.result ?? null,
       };
 

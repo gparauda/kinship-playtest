@@ -78,16 +78,17 @@ const EVENT_DECKS = [
       food: -2,
     },
     {
-      title: "Animal Migration",
+      title: "Easy Trails",
       description:
-        "The herd has gathered along a familiar route. Your final Hunt total gains +3 this turn.",
+        "Fresh tracks cut across the valley. Your final Hunt total gains +2 this turn.",
       threat: 5,
-      hunt: 3,
+      hunt: 2,
     },
     {
-      title: "Calm Skies",
-      description: "A quiet season gives the community room to prepare.",
-      threat: 3,
+      title: "Cold Rain",
+      description: "The rain soaks kindling and stores. Lose 2 Food.",
+      threat: 4,
+      foodLoss: 2,
     },
     {
       title: "Rocky Terrain",
@@ -97,10 +98,22 @@ const EVENT_DECKS = [
       hunt: -3,
     },
     {
-      title: "Local Thieves",
-      description: "Supplies disappear during the night.",
+      title: "Broken Tools",
+      description: "Gathering is slowed while tools are repaired. Your final Food total is reduced by 1 this turn.",
+      threat: 5,
+      food: -1,
+    },
+    {
+      title: "Lost Path",
+      description: "A familiar route vanishes beneath fallen branches. Kinship projects take 1 additional turn.",
       threat: 6,
-      foodLoss: 3,
+      kinship: 1,
+    },
+    {
+      title: "Foraging Patch",
+      description: "A sheltered patch of roots is found. Your final Food total gains +1 this turn.",
+      threat: 3,
+      food: 1,
     },
   ],
   [
@@ -119,11 +132,11 @@ const EVENT_DECKS = [
       hunt: -3,
     },
     {
-      title: "Fertile Season",
+      title: "Thin Forage",
       description:
-        "The land briefly gives more than expected. Your final Food total gains +2 this turn.",
-      threat: 6,
-      food: 2,
+        "The usual plants are sparse. Your final Food total is reduced by 2 this turn.",
+      threat: 8,
+      food: -2,
     },
     {
       title: "Spoiled Stores",
@@ -132,11 +145,23 @@ const EVENT_DECKS = [
       foodLoss: 5,
     },
     {
-      title: "Spiritual Awakening",
+      title: "Restless Nights",
       description:
-        "The community's rituals become especially meaningful. Your final Prayer gain gets +1 this turn.",
-      threat: 10,
-      prayer: 1,
+        "Anxious vigils disrupt the camp. Kinship projects take 1 additional turn.",
+      threat: 9,
+      kinship: 1,
+    },
+    {
+      title: "Flash Frost",
+      description: "A sudden frost spoils gathered plants. Your final Food total is reduced by 2 this turn.",
+      threat: 8,
+      food: -2,
+    },
+    {
+      title: "Torn Nets",
+      description: "The best hunting gear needs mending. Your final Hunt total is reduced by 2 this turn.",
+      threat: 9,
+      hunt: -2,
     },
   ],
   [
@@ -168,11 +193,23 @@ const EVENT_DECKS = [
       foodLoss: 8,
     },
     {
-      title: "Clear Moon",
+      title: "Sheltered Ritual",
       description:
-        "A calm night strengthens the community's rituals. Your final Prayer gain gets +1 this turn.",
-      threat: 10,
+        "A protected gathering strengthens resolve. Your final Prayer gain gets +1 this turn.",
+      threat: 11,
       prayer: 1,
+    },
+    {
+      title: "Wolf Pack",
+      description: "Predators circle the hunting grounds. Your final Hunt total is reduced by 2 this turn.",
+      threat: 15,
+      hunt: -2,
+    },
+    {
+      title: "Mudslide",
+      description: "A slope gives way and buries part of the stores. Lose 5 Food.",
+      threat: 13,
+      foodLoss: 5,
     },
   ],
   [
@@ -206,9 +243,22 @@ const EVENT_DECKS = [
       kinship: 2,
     },
     {
-      title: "Quiet Season",
-      description: "For a moment, the pressure eases.",
-      threat: 14,
+      title: "Contested Ground",
+      description: "Other groups force a long detour. Your final Hunt total is reduced by 3 this turn.",
+      threat: 18,
+      hunt: -3,
+    },
+    {
+      title: "Ashfall",
+      description: "Ash settles over the valley and smothers edible growth. Your final Food total is reduced by 3 this turn.",
+      threat: 18,
+      food: -3,
+    },
+    {
+      title: "Fractured Trail",
+      description: "Travel between camps becomes slow and uncertain. Kinship projects take 1 additional turn.",
+      threat: 20,
+      kinship: 1,
     },
   ],
   [
@@ -242,10 +292,23 @@ const EVENT_DECKS = [
       kinship: 2,
     },
     {
-      title: "Stable Season",
+      title: "Windfall Cache",
       description:
-        "A rare stable season gives the community a chance to endure.",
+        "An old cache is uncovered before the storms. Your final Food total gains +2 this turn.",
       threat: 24,
+      food: 2,
+    },
+    {
+      title: "Blizzard",
+      description: "Whiteout conditions halt most gathering. Your final Food total is reduced by 3 this turn.",
+      threat: 27,
+      food: -3,
+    },
+    {
+      title: "Raided Stores",
+      description: "Desperate rivals find the hidden stores. Lose 25 Food.",
+      threat: 26,
+      foodLoss: 25,
     },
   ],
 ];
@@ -284,8 +347,17 @@ function currentEvent() {
   return deck[Math.floor(Math.random() * deck.length)];
 }
 
+function huntTargetForThreat(threat) {
+  if (threat <= 4) return "Hare";
+  if (threat <= 7) return "Deer";
+  if (threat <= 11) return "Wild Boar";
+  if (threat <= 16) return "Elk";
+  if (threat <= 22) return "Bison";
+  return "Mammoth";
+}
+
 function eventEffectLabels(event) {
-  const labels = [`Threat ${event.threat}`];
+  const labels = [`${huntTargetForThreat(event.threat)} · Threat ${event.threat}`];
 
   if (event.food) {
     labels.push(
@@ -763,7 +835,7 @@ function render() {
 
   $("event-title").textContent = event.title;
   $("event-description").textContent = event.description;
-  $("event-type").textContent = `Threat ${event.threat}`;
+  $("event-type").textContent = `${huntTargetForThreat(event.threat)} · Threat ${event.threat}`;
 
   const eventLabels = eventEffectLabels(event);
 
@@ -1252,6 +1324,21 @@ function innovationCost(choice) {
   // A face's first improvement costs one set; its second costs two.
   return (state.upgrades[choice.die][choice.side] || 0) + 1;
 }
+
+function convertReadyInnovationSets(research) {
+  let completedSets = 0;
+  while (hasAvailableUpgrade() && state.materials.Stick > 0 && state.materials.Rope > 0 && state.materials.Rock > 0) {
+    state.materials.Stick -= 1;
+    state.materials.Rope -= 1;
+    state.materials.Rock -= 1;
+    state.innovation += 1;
+    completedSets += 1;
+  }
+
+  if (completedSets > 0) state.choiceQueue.unshift({ type: "technology", research });
+  return completedSets;
+}
+
 function resolveTurn() {
   if (state.gameOver || availablePeople() !== 0) return;
 
@@ -1264,6 +1351,7 @@ function resolveTurn() {
     era: currentEraIndex() + 1,
     event: event.title,
     threat: event.threat,
+    huntTarget: huntTargetForThreat(event.threat),
     protected: state.protected ? "Yes" : "No",
 
     gender: state.gender,
@@ -1344,7 +1432,7 @@ function resolveTurn() {
       state.food += huntRollTotal;
 
       results.push(
-        `Hunt: ${huntRollTotal} total, ${skulls} Skull${
+        `Hunt: ${huntTargetForThreat(event.threat)} — ${huntRollTotal} total, ${skulls} Skull${
           skulls === 1 ? "" : "s"
         }, versus Threat ${event.threat}. Success: +${huntRollTotal} Food.`
       );
@@ -1352,13 +1440,13 @@ function resolveTurn() {
       state.people -= 1;
 
       results.push(
-        `Hunt: ${huntRollTotal} total, ${skulls} Skull${
+        `Hunt: ${huntTargetForThreat(event.threat)} — ${huntRollTotal} total, ${skulls} Skull${
           skulls === 1 ? "" : "s"
         }, versus Threat ${event.threat}. Failed: 1 person was lost.`
       );
     } else {
       results.push(
-        `Hunt: ${huntRollTotal} total, 0 Skulls, versus Threat ${
+        `Hunt: ${huntTargetForThreat(event.threat)} — ${huntRollTotal} total, 0 Skulls, versus Threat ${
           event.threat
         }. Failed: no Food was gained, but no hunter was lost.`
       );
@@ -1386,29 +1474,10 @@ function resolveTurn() {
     );
   }
 
-  let completedSets = 0;
-
-  while (
-    hasAvailableUpgrade() &&
-    state.materials.Stick > 0 &&
-    state.materials.Rope > 0 &&
-    state.materials.Rock > 0
-  ) {
-    state.materials.Stick -= 1;
-    state.materials.Rope -= 1;
-    state.materials.Rock -= 1;
-
-    completedSets += 1;
-  }
+  const completedSets = convertReadyInnovationSets(research);
 
   if (completedSets > 0) {
-    state.innovation += completedSets;
-    state.choiceQueue.push({ type: "technology", research });
-    results.push(
-      `Technology: completed ${completedSets} set${
-        completedSets === 1 ? "" : "s"
-      } and saved ${completedSets} Innovation.`
-    );
+    results.push(`Technology: completed ${completedSets} set${completedSets === 1 ? "" : "s"} and saved ${completedSets} Innovation.`);
   }
 
   // WORSHIP: W1/W2 = Sacrifice. W3–W6 = 1 Prayer, plus upgrade.
@@ -1519,6 +1588,7 @@ function resolveTurn() {
     food: research.foodEnd,
     prayer: research.prayerEnd,
     innovation: research.innovationEnd,
+    huntTarget: research.huntTarget,
     result: research.result,
   });
 
@@ -1678,35 +1748,34 @@ function currentUpgrade(die, face) {
   return state ? bonusFor(die, face) : 0;
 }
 
-function dieGridHTML() {
+function dieGridHTML({ selectable = false, choices = [] } = {}) {
+  const choiceFor = (die, side) =>
+    choices.find((choice) => choice.die === die && choice.side === side);
+  const face = (die, side, content, extraClass = "") => {
+    const choice = choiceFor(die, side);
+    const base = die === "F" ? [1, 1, 2, 2, 2, 3][side - 1] : die === "H" ? side : die === "W" && side > 2 ? 1 : "Sacrifice";
+    const detail = choice
+      ? `${choice.label}. Original: ${base}${die === "F" ? " Food" : die === "W" && side > 2 ? " Prayer" : ""}. Upgrade history: +${bonusFor(die, side)}. ${choice.description} Cost: ${innovationCost(choice)} Innovation.`
+      : `${die}${side}. This face cannot be upgraded further.`;
+    const attrs = selectable && choice
+      ? ` type="button" class="die-face upgrade-die-face ${extraClass}" data-die="${die}" data-side="${side}" aria-label="${escapeHTML(detail)}" title="${escapeHTML(detail)}"`
+      : ` class="die-face ${extraClass}" title="${escapeHTML(detail)}"`;
+    const tag = selectable && choice ? "button" : "div";
+    return `<${tag}${attrs}><small>${die}${side}</small><strong>${content}</strong><span class="face-detail">${escapeHTML(detail)}</span></${tag}>`;
+  };
   const foodFaces = [1, 1, 2, 2, 2, 3]
     .map(
-      (face, index) => `
-        <div class="die-face">
-          <small>F${index + 1}</small>
-          <strong>${face + currentUpgrade("F", index + 1)} Food</strong>
-        </div>
-      `
+      (value, index) => face("F", index + 1, `${value + currentUpgrade("F", index + 1)} Food`)
     )
     .join("");
 
   const huntFaces = ["Skull", "Skull", 3, 4, 5, 6]
-    .map((face, index) => {
-      if (face === "Skull") {
-        return `
-          <div class="die-face danger-face">
-            <small>H${index + 1}</small>
-            <strong>Skull</strong>
-          </div>
-        `;
+    .map((value, index) => {
+      if (value === "Skull") {
+        return face("H", index + 1, "Skull", "danger-face");
       }
 
-      return `
-        <div class="die-face">
-          <small>H${index + 1}</small>
-          <strong>${face + currentUpgrade("H", index + 1)}</strong>
-        </div>
-      `;
+      return face("H", index + 1, value + currentUpgrade("H", index + 1));
     })
     .join("");
 
@@ -1719,39 +1788,24 @@ function dieGridHTML() {
     "Rock",
   ]
     .map(
-      (face, index) => `
-        <div class="die-face">
-          <small>T${index + 1}</small>
-          <strong>${face}</strong>
-        </div>
-      `
+      (value, index) => face("T", index + 1, value)
     )
     .join("");
 
   const worshipFaces = [1, 2, 3, 4, 5, 6]
-    .map((face, index) => {
+    .map((value, index) => {
       const side = index + 1;
 
-      if (face === 1 || face === 2) {
+      if (value === 1 || value === 2) {
         const label =
           state && state.upgrades.W[side] > 0
             ? "Devout Sacrifice"
             : "Sacrifice";
 
-        return `
-          <div class="die-face sacrifice-face">
-            <small>W${side}</small>
-            <strong>${label}</strong>
-          </div>
-        `;
+        return face("W", side, label, "sacrifice-face");
       }
 
-      return `
-        <div class="die-face">
-          <small>W${side}</small>
-          <strong>${1 + currentUpgrade("W", side)} Prayer</strong>
-        </div>
-      `;
+      return face("W", side, `${1 + currentUpgrade("W", side)} Prayer`);
     })
     .join("");
 
@@ -1782,7 +1836,9 @@ function dieGridHTML() {
       </section>
     </div>
   `;
-}function showTechnologyUpgrade(research, isFree = false) {
+}
+
+function showTechnologyUpgrade(research, isFree = false) {
   const choices = availableUpgradeChoices().filter(
     (choice) => isFree || innovationCost(choice) <= state.innovation
   );
@@ -1796,44 +1852,20 @@ function dieGridHTML() {
     <div class="result-inner upgrade-modal">
       <p class="eyebrow">${isFree ? "Devout Sacrifice" : "Technology complete"}</p>
       <h2>Choose a permanent upgrade</h2>
-      <p>
-        ${
-          isFree
-            ? "This Devout Sacrifice upgrade costs no Innovation."
-            : `You have ${state.innovation} saved Innovation. A face's first upgrade costs 1; its second costs 2.`
-        }
-        W1/W2 can only become Devout once; Hunt Skulls cannot be upgraded.
-      </p>
-
-      ${dieGridHTML()}
-
-      <div class="upgrade-choice-grid">
-        ${choices
-          .map(
-            (choice, index) => `
-              <button
-                class="choice-button technology-choice"
-                data-index="${index}"
-              >
-                <strong>${choice.label}</strong>
-                <small>${choice.description} ${
-                  isFree
-                    ? "Free upgrade."
-                    : `Cost: ${innovationCost(choice)} Innovation.`
-                }</small>
-              </button>
-            `
-          )
-          .join("")}
-      </div>
+      <p>${isFree ? "Choose a face for your free Innovation." : `You have ${state.innovation} saved Innovation. Choose a face to spend it, or save it for a later stronger upgrade.`}</p>
+      <p class="modal-note">Hover or focus a face to inspect its original result, upgrade history, and cost. On touch screens, tap a face to choose it. W1/W2 can only become Devout once; Hunt Skulls cannot be upgraded.</p>
+      ${dieGridHTML({ selectable: true, choices })}
+      ${isFree ? "" : '<button id="save-innovation" class="button button-ghost save-innovation">Save Innovation for later</button>'}
     </div>
   `;
 
   $("result-modal").showModal();
 
-  document.querySelectorAll(".technology-choice").forEach((button) => {
+  document.querySelectorAll(".upgrade-die-face").forEach((button) => {
     button.addEventListener("click", () => {
-      const choice = choices[Number(button.dataset.index)];
+      const choice = choices.find(
+        (candidate) => candidate.die === button.dataset.die && candidate.side === Number(button.dataset.side)
+      );
 
       if (!isFree) {
         const cost = innovationCost(choice);
@@ -1859,6 +1891,16 @@ function dieGridHTML() {
       processChoiceQueue();
     });
   });
+
+  const saveInnovation = $("save-innovation");
+  if (saveInnovation) {
+    saveInnovation.addEventListener("click", () => {
+      addLog("Innovation was saved for a later upgrade.");
+      saveGame();
+      $("result-modal").close();
+      processChoiceQueue();
+    });
+  }
 }
 
 function showMaterialChoice(research) {
@@ -1894,8 +1936,12 @@ function showMaterialChoice(research) {
       const material = button.dataset.material;
 
       state.materials[material] += 1;
-
-      const message = `Sacrifice reward: gained 1 ${material}.`;
+      const completedSets = convertReadyInnovationSets(research);
+      const message = `Sacrifice reward: gained 1 ${material}.${
+        completedSets
+          ? ` Completed ${completedSets} Innovation set${completedSets === 1 ? "" : "s"}.`
+          : ""
+      }`;
       addLog(message);
 
       if (research) {
@@ -1990,8 +2036,8 @@ function showSacrificeChoice(isDevout, research) {
         ...(hasAvailableUpgrade()
           ? [
               {
-                title: "1 free Technology upgrade",
-                description: "Choose one permanent die-face upgrade.",
+                title: "1 free Innovation",
+                description: "Choose one permanent die-face upgrade at no cost.",
                 apply: () => {
                   state.choiceQueue.unshift({
                     type: "technology",
@@ -1999,7 +2045,7 @@ function showSacrificeChoice(isDevout, research) {
                     free: true,
                   });
 
-                  return "Devout Sacrifice reward: 1 free Technology upgrade.";
+                  return "Devout Sacrifice reward: 1 free Innovation.";
                 },
               },
             ]
@@ -2176,8 +2222,9 @@ function rulesHTML() {
 
       <p>
         Ordinary Sacrifice offers +5 Food, 1 free material, or finishing one
-        Kinship project. Devout Sacrifice offers +10 Food, one free Technology
-        upgrade when an eligible side remains, or finishing all active
+        Kinship project. A free material immediately forms Innovation if it
+        completes a set. Devout Sacrifice offers +10 Food, one free Innovation
+        when an eligible face remains, or finishing all active
         Kinship projects.
       </p>
       <h3>Events and modifiers</h3>
@@ -2298,6 +2345,10 @@ async function endGame(reason) {
           Download session CSV
         </button>
 
+        <button id="play-again" class="button button-secondary">
+          Play again
+        </button>
+
         <button id="end-close" class="button button-ghost">
           Close without downloading
         </button>
@@ -2308,6 +2359,18 @@ async function endGame(reason) {
   $("result-modal").showModal();
 
   $("end-download").addEventListener("click", downloadCSV);
+
+  $("play-again").addEventListener("click", () => {
+    // Preserve the questionnaire answers, but every replay is no longer a first game.
+    $("first-game").value = "no";
+    $("result-modal").close();
+    state = createNewState();
+    clearSavedGame();
+    addLog("A new playtest begins.");
+    saveGame();
+    startRemoteSession();
+    showRulesAndDice("rules", () => beginTurn());
+  });
 
   $("end-close").addEventListener("click", () =>
     $("result-modal").close()
