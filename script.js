@@ -6,6 +6,7 @@
 */
 
 const SAVE_KEY = "kinship-playtest-save-v3";
+const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
 
 const GAME_TEXT = {
   firstTurnTitle: "First Turn",
@@ -63,6 +64,22 @@ const ERA_NAMES = [
 ];
 
 const LEGACY_COSTS = [3, 5, 7, 9, 11];
+const ACHIEVEMENTS = [
+  { id: "fifteen-people", name: "Full House", shape: "hexagon", description: "Reach 15 people in one community." },
+  { id: "twenty-five-prayer", name: "Votive Hoard", shape: "crescent", description: "Hold 25 Prayer at once." },
+  { id: "fifty-food", name: "Winter Larder", shape: "shield", description: "Store 50 Food at once." },
+  { id: "ten-material", name: "Tenfold Strand", shape: "knot", description: "Hold 10 of a single Technology material." },
+  { id: "five-upgrades", name: "First Notch", shape: "diamond", description: "Make 5 upgrades in one game." },
+  { id: "fifteen-upgrades", name: "Second Notch", shape: "diamond", description: "Make 15 upgrades in one game." },
+  { id: "twenty-five-upgrades", name: "Third Notch", shape: "diamond", description: "Make 25 upgrades in one game." },
+  { id: "turn-25", name: "Quarter Light", shape: "sun", description: "Reach Turn 25." },
+  { id: "turn-50", name: "Half Light", shape: "sun", description: "Reach Turn 50." },
+  { id: "turn-100", name: "Long Night", shape: "sun", description: "Reach Turn 100." },
+  { id: "first-era-claim", name: "Doorstep", shape: "gate", description: "Claim an era's Prestige chip on its first turn." },
+  { id: "lost-turn-two", name: "Empty Chair", shape: "eclipse", rare: true, ultraRare: true },
+  { id: "five-skulls", name: "Fivefold Omen", shape: "star", rare: true },
+  { id: "face-five-upgrades", name: "Patient Hammer", shape: "anvil", rare: true },
+];
 
 /*
   Food, Hunt, and Prayer modifiers apply ONCE to the action's final total.
@@ -217,14 +234,14 @@ const EVENT_DECKS = [
       title: "Deep Freeze",
       description:
         "The land becomes difficult to work. Your final Food total is reduced by 4 this turn.",
-      threat: 18,
+      threat: 15,
       food: -4,
     },
     {
       title: "Famine",
       description:
         "Even successful gathering brings back little. Your final Food total is reduced by 2 and 12 stored Food is lost.",
-      threat: 20,
+      threat: 17,
       food: -2,
       foodLoss: 12,
     },
@@ -232,32 +249,32 @@ const EVENT_DECKS = [
       title: "Predator Surge",
       description:
         "The hunt is shadowed by dangerous predators. Your final Hunt total is reduced by 5 this turn.",
-      threat: 19,
+      threat: 16,
       hunt: -5,
     },
     {
       title: "Widespread Illness",
       description:
         "Several projects slow while the community recovers.",
-      threat: 17,
+      threat: 15,
       kinship: 2,
     },
     {
       title: "Contested Ground",
       description: "Other groups force a long detour. Your final Hunt total is reduced by 3 this turn.",
-      threat: 18,
+      threat: 16,
       hunt: -3,
     },
     {
       title: "Ashfall",
       description: "Ash settles over the valley and smothers edible growth. Your final Food total is reduced by 3 this turn.",
-      threat: 18,
+      threat: 15,
       food: -3,
     },
     {
       title: "Fractured Trail",
       description: "Travel between camps becomes slow and uncertain. Kinship projects take 1 additional turn.",
-      threat: 20,
+      threat: 17,
       kinship: 1,
     },
   ],
@@ -266,28 +283,28 @@ const EVENT_DECKS = [
       title: "Bitter Winter",
       description:
         "A final hard winter tests everything built. Your final Food total is reduced by 4 and 20 stored Food is lost.",
-      threat: 25,
+      threat: 18,
       food: -4,
       foodLoss: 20,
     },
     {
       title: "Great Famine",
       description: "Food stores are devastated.",
-      threat: 27,
+      threat: 19,
       foodLoss: 50,
     },
     {
       title: "Vanishing Herds",
       description:
         "The last familiar hunting grounds have emptied. Your final Hunt total is reduced by 7 this turn.",
-      threat: 26,
+      threat: 18,
       hunt: -7,
     },
     {
       title: "Plague",
       description:
         "Illness and scarcity strike at once. Your final Food total is reduced by 2 and Kinship projects take longer.",
-      threat: 25,
+      threat: 18,
       food: -2,
       kinship: 2,
     },
@@ -295,19 +312,19 @@ const EVENT_DECKS = [
       title: "Windfall Cache",
       description:
         "An old cache is uncovered before the storms. Your final Food total gains +2 this turn.",
-      threat: 24,
+      threat: 17,
       food: 2,
     },
     {
       title: "Blizzard",
       description: "Whiteout conditions halt most gathering. Your final Food total is reduced by 3 this turn.",
-      threat: 27,
+      threat: 19,
       food: -3,
     },
     {
       title: "Raided Stores",
       description: "Desperate rivals find the hidden stores. Lose 25 Food.",
-      threat: 26,
+      threat: 18,
       foodLoss: 25,
     },
   ],
@@ -316,6 +333,94 @@ const EVENT_DECKS = [
 let state = null;
 
 const $ = (id) => document.getElementById(id);
+
+function earnedAchievements() {
+  try {
+    return JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function awardAchievements(ids) {
+  const earned = earnedAchievements();
+  let changed = false;
+
+  ids.forEach((id) => {
+    if (!earned[id]) {
+      earned[id] = true;
+      changed = true;
+    }
+  });
+
+  if (changed) localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned));
+}
+
+function upgradesMade() {
+  if (!state) return 0;
+  return ["F", "H", "W"].reduce(
+    (total, die) => total + state.upgrades[die].reduce((sum, level) => sum + level, 0),
+    0
+  );
+}
+
+function eraStartTurn(era = currentEraIndex()) {
+  return [1, 8, 15, 31, 61][era];
+}
+
+function evaluateAchievements({ huntSkulls = 0 } = {}) {
+  if (!state) return;
+
+  const materialPeak = Math.max(...Object.values(state.materials));
+  const upgradeTotal = upgradesMade();
+  const faceUpgradedFiveTimes = ["F", "H", "W"].some((die) =>
+    state.upgrades[die].some((level) => level >= 5)
+  );
+
+  awardAchievements([
+    ...(state.people >= 15 ? ["fifteen-people"] : []),
+    ...(state.prayer >= 25 ? ["twenty-five-prayer"] : []),
+    ...(state.food >= 50 ? ["fifty-food"] : []),
+    ...(materialPeak >= 10 ? ["ten-material"] : []),
+    ...(upgradeTotal >= 5 ? ["five-upgrades"] : []),
+    ...(upgradeTotal >= 15 ? ["fifteen-upgrades"] : []),
+    ...(upgradeTotal >= 25 ? ["twenty-five-upgrades"] : []),
+    ...(state.turn >= 25 ? ["turn-25"] : []),
+    ...(state.turn >= 50 ? ["turn-50"] : []),
+    ...(state.turn >= 100 ? ["turn-100"] : []),
+    ...(huntSkulls >= 5 ? ["five-skulls"] : []),
+    ...(faceUpgradedFiveTimes ? ["face-five-upgrades"] : []),
+  ]);
+}
+
+function achievementHTML(achievement, earned) {
+  const hidden = achievement.rare && !earned;
+  return `
+    <article class="achievement ${earned ? "earned" : "locked"} ${achievement.rare ? "rare" : ""}">
+      <span class="achievement-badge shape-${achievement.shape}" aria-hidden="true">${earned ? "✦" : "?"}</span>
+      <div>
+        <strong>${earned ? achievement.name : hidden ? "Hidden achievement" : achievement.name}</strong>
+        <small>${hidden ? "" : achievement.description || ""}</small>
+      </div>
+      ${achievement.ultraRare ? '<em>Ultra rare</em>' : achievement.rare ? '<em>Rare</em>' : ""}
+    </article>`;
+}
+
+function showAchievements() {
+  const earned = earnedAchievements();
+  const complete = ACHIEVEMENTS.filter((achievement) => earned[achievement.id]).length;
+
+  $("result-content").innerHTML = `
+    <div class="result-inner reference-modal achievements-modal">
+      <p class="eyebrow">Persistent record</p>
+      <h2>Achievements <span class="achievement-total">${complete} / ${ACHIEVEMENTS.length}</span></h2>
+      <p class="modal-note">Achievements remain unlocked across every game played in this browser.</p>
+      <div class="achievement-list">${ACHIEVEMENTS.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}</div>
+      <button id="achievements-close" class="button button-primary">Close</button>
+    </div>`;
+  $("result-modal").showModal();
+  $("achievements-close").addEventListener("click", () => $("result-modal").close());
+}
 
 function currentEraIndex(turn = state.turn) {
   if (turn <= 7) return 0;
@@ -566,6 +671,7 @@ function createNewState() {
     startTurnNotes: [],
     turnPhase: "rules",
     gameOver: false,
+    tutorialSeen: false,
 
     preferences: {
       skipProtection: $("skip-protection").checked,
@@ -596,7 +702,11 @@ function startGame(event) {
   saveGame();
   startRemoteSession();
 
-  showRulesAndDice("rules", () => beginTurn());
+  if (state.firstGame) {
+    showTutorial(() => beginTurn());
+  } else {
+    showRulesAndDice("rules", () => beginTurn());
+  }
 }
 
 function addLog(message) {
@@ -661,6 +771,24 @@ $("auto-prestige").addEventListener("change", () => {
 });
 
 $("dice-btn").addEventListener("click", () => showRulesAndDice("dice"));
+$("achievements-btn").addEventListener("click", showAchievements);
+
+function openSavedInnovationMenu() {
+  if (!state || state.gameOver || state.innovation < 1 || !hasAvailableUpgrade()) return;
+
+  showTechnologyUpgrade(null, false, () => {
+    saveGame();
+    render();
+  });
+}
+
+$("technology-panel").addEventListener("click", openSavedInnovationMenu);
+$("technology-panel").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    openSavedInnovationMenu();
+  }
+});
 
 $("new-game-btn").addEventListener("click", () => {
   clearSavedGame();
@@ -734,6 +862,7 @@ function beginTurn() {
 
   state.event = currentEvent();
   tryAutoClaimLegacy();
+  evaluateAchievements();
 
   state.turnPhase = "event";
   saveGame();
@@ -1041,7 +1170,7 @@ function renderLegacy() {
         ${
           isCurrent && !isEarned && !state.preferences.autoPrestige
             ? `<button class="text-button prestige-buy" data-era="${index}">
-                Claim Era ${index + 1} Legacy · ${cost} Prayer
+                Claim Era ${index + 1} Legacy by Turn ${eraEndTurn(index)} · ${cost} Prayer
               </button>`
             : ""
         }
@@ -1076,6 +1205,10 @@ function claimLegacy(era, fromWarning = false) {
 
   state.prayer -= cost;
   state.legacy[era] = true;
+
+  if (state.turn === eraStartTurn(era)) {
+    awardAchievements(["first-era-claim"]);
+  }
 
   addLog(`Claimed the Era ${era + 1} Legacy for ${cost} Prayer.`);
 
@@ -1132,7 +1265,7 @@ function showEventReveal() {
           ${
             state.prayer >= cost
               ? `<button id="warning-claim-legacy" class="button button-secondary">
-                  Claim Era ${era + 1} Legacy · ${cost} Prayer
+                  Claim Era ${era + 1} Legacy by Turn ${eraEndTurn(era)} · ${cost} Prayer
                 </button>`
               : `<small>You need ${
                   cost - state.prayer
@@ -1252,8 +1385,8 @@ function upgradeLimit(die, side) {
   // W1/W2 transform to Devout Sacrifice and cannot improve again.
   if (die === "W" && (side === 1 || side === 2)) return 1;
 
-  // Every other eligible physical die side can gain +2.
-  return 2;
+  // Other physical die faces can be developed deeply over a long session.
+  return 5;
 }
 
 function bonusFor(die, side) {
@@ -1321,7 +1454,7 @@ function hasAvailableUpgrade() {
 }
 
 function innovationCost(choice) {
-  // A face's first improvement costs one set; its second costs two.
+  // Each further improvement costs one more saved Innovation than the last.
   return (state.upgrades[choice.die][choice.side] || 0) + 1;
 }
 
@@ -1480,26 +1613,21 @@ function resolveTurn() {
     results.push(`Technology: completed ${completedSets} set${completedSets === 1 ? "" : "s"} and saved ${completedSets} Innovation.`);
   }
 
-  // WORSHIP: W1/W2 = Sacrifice. W3–W6 = 1 Prayer, plus upgrade.
-  let sacrifices = 0;
+  // WORSHIP: only one sacrifice resolves. A Devout result always takes priority.
+  const sacrificeRolls = [];
 
   for (let i = 0; i < state.allocations.W; i += 1) {
     const roll = rollDie([1, 2, 3, 4, 5, 6]);
     const face = roll.value;
 
     if (face === 1 || face === 2) {
-      sacrifices += 1;
-      state.people -= 1;
       const devout = state.upgrades.W[roll.side] > 0;
+      sacrificeRolls.push({ devout, side: roll.side });
 
       research.worshipRolls.push(
         `W${roll.side}→${devout ? "Devout Sacrifice" : "Sacrifice"}`
       );
 
-      state.choiceQueue.push({
-        type: devout ? "devoutSacrifice" : "sacrifice",
-        research,
-      });
     } else {
       const value = 1 + bonusFor("W", roll.side);
 
@@ -1517,11 +1645,21 @@ function resolveTurn() {
     results.push(`Worship: +${prayerGained} Prayer.`);
   }
 
-  if (sacrifices > 0) {
+  if (sacrificeRolls.length > 0) {
+    const chosen = sacrificeRolls.find((roll) => roll.devout) || sacrificeRolls[0];
+    const ignored = sacrificeRolls.length - 1;
+
+    state.people -= 1;
+    state.choiceQueue.push({
+      type: chosen.devout ? "devoutSacrifice" : "sacrifice",
+      research,
+    });
     results.push(
-      `Worship: ${sacrifices} person${
-        sacrifices === 1 ? " was" : "s were"
-      } sacrificed. Choose ${sacrifices === 1 ? "a reward" : "rewards"}.`
+      `Worship: 1 person was sacrificed for a ${chosen.devout ? "Devout Sacrifice" : "Sacrifice"}.` +
+      (ignored > 0
+        ? ` ${ignored} additional Sacrifice roll${ignored === 1 ? "" : "s"} gave 0 Prayer and caused no further loss.`
+        : "") +
+      " Choose a reward."
     );
   }
 
@@ -1560,6 +1698,9 @@ function resolveTurn() {
       results.push("There was not enough Food. 1 person was lost.");
     }
   }
+
+  // Record milestones before upkeep consumes Food or causes a hunger loss.
+  evaluateAchievements({ huntSkulls: skulls });
 
   research.peopleEnd = state.people;
   research.foodEnd = state.food;
@@ -1700,7 +1841,7 @@ function showFinalLegacyChoice(era) {
       ${
         canClaim
           ? `<button id="final-claim" class="button button-primary">
-              Claim Era ${era + 1} Legacy · ${cost} Prayer
+              Claim Era ${era + 1} Legacy by Turn ${eraEndTurn(era)} · ${cost} Prayer
             </button>`
           : `<p class="modal-note">You have ${state.prayer} Prayer but need ${cost}.</p>`
       }
@@ -1729,6 +1870,7 @@ function showFinalLegacyChoice(era) {
 }
 
 function advanceTurn() {
+  evaluateAchievements();
   state.turn += 1;
 
   if (state.turn > 100) {
@@ -1838,13 +1980,13 @@ function dieGridHTML({ selectable = false, choices = [] } = {}) {
   `;
 }
 
-function showTechnologyUpgrade(research, isFree = false) {
+function showTechnologyUpgrade(research, isFree = false, onComplete = processChoiceQueue) {
   const choices = availableUpgradeChoices().filter(
     (choice) => isFree || innovationCost(choice) <= state.innovation
   );
 
   if (choices.length === 0) {
-    processChoiceQueue();
+    onComplete();
     return;
   }
 
@@ -1874,6 +2016,7 @@ function showTechnologyUpgrade(research, isFree = false) {
       }
 
       state.upgrades[choice.die][choice.side] += 1;
+      evaluateAchievements();
 
       addLog(
         `${choice.label} was upgraded to +${
@@ -1888,7 +2031,7 @@ function showTechnologyUpgrade(research, isFree = false) {
       saveGame();
       $("result-modal").close();
 
-      processChoiceQueue();
+      onComplete();
     });
   });
 
@@ -1898,7 +2041,7 @@ function showTechnologyUpgrade(research, isFree = false) {
       addLog("Innovation was saved for a later upgrade.");
       saveGame();
       $("result-modal").close();
-      processChoiceQueue();
+      onComplete();
     });
   }
 }
@@ -1948,6 +2091,7 @@ function showMaterialChoice(research) {
         research.sacrificeRewards.push(message);
       }
 
+      evaluateAchievements();
       saveGame();
       $("result-modal").close();
 
@@ -2014,6 +2158,7 @@ function showOneKinshipChoice(research) {
         research.sacrificeRewards.push(message);
       }
 
+      evaluateAchievements();
       saveGame();
       $("result-modal").close();
 
@@ -2036,16 +2181,16 @@ function showSacrificeChoice(isDevout, research) {
         ...(hasAvailableUpgrade()
           ? [
               {
-                title: "1 free Innovation",
-                description: "Choose one permanent die-face upgrade at no cost.",
+                title: "+1 Innovation",
+                description: "Add 1 saved Innovation; you may spend it now or save it for later.",
                 apply: () => {
+                  state.innovation += 1;
                   state.choiceQueue.unshift({
                     type: "technology",
                     research,
-                    free: true,
                   });
 
-                  return "Devout Sacrifice reward: 1 free Innovation.";
+                  return "Devout Sacrifice reward: +1 saved Innovation.";
                 },
               },
             ]
@@ -2150,6 +2295,7 @@ function showSacrificeChoice(isDevout, research) {
         research.sacrificeRewards.push(message);
       }
 
+      evaluateAchievements();
       saveGame();
       $("result-modal").close();
 
@@ -2207,8 +2353,9 @@ function rulesHTML() {
       <p>
         Technology rolls give Stick, Rope, or Rock. One of each completes a
         set and saves 1 Innovation. A face's first upgrade costs 1 saved
-        Innovation and its second costs 2. Each physical eligible side can be
-        upgraded twice, except W1/W2, which can only become Devout once. Hunt
+        Innovation, and each next improvement costs one more than the last.
+        Each physical eligible side can be upgraded five times, except W1/W2,
+        which can only become Devout once. Hunt
         Skulls and Technology faces cannot be upgraded. Once every eligible
         upgrade is exhausted, Technology sets can no longer be completed.
       </p>
@@ -2217,7 +2364,9 @@ function rulesHTML() {
       <p>
         W1 and W2 are Sacrifice faces. Each may upgrade once into Devout
         Sacrifice. W3–W6 each produce 1 Prayer and can be individually
-        upgraded twice. Every Sacrifice rolled is resolved.
+        upgraded five times. Only one Sacrifice resolves each turn: if a
+        Devout Sacrifice was rolled, it takes priority. Any other Sacrifice
+        rolls give 0 Prayer and cause no additional loss.
       </p>
 
       <p>
@@ -2250,6 +2399,61 @@ function rulesHTML() {
       </p>
     </div>
   `;
+}
+
+function showTutorial(onComplete) {
+  const steps = [
+    {
+      title: "Assign your community",
+      text: "Use the + and − controls to allocate every available person. Food, Hunt, Technology, and Worship roll their own die; Kinship uses pairs and keeps them busy until the project ends.",
+    },
+    {
+      title: "Read the dice",
+      text: "Each action card tells you what its die can do. Open Rules & dice at any time to inspect the current faces, including changes from upgrades.",
+    },
+    {
+      title: "Preserve each era",
+      text: "The game has five eras. Build Prayer, then claim that era's Prestige chip before its deadline—the claim button always states the final turn.",
+    },
+    {
+      title: "Turn materials into upgrades",
+      text: "Technology can find Stick, Rope, and Rock. One of each becomes Innovation. Spend it by selecting the Craft panel on the right to improve a die face permanently.",
+    },
+  ];
+  let step = 0;
+
+  const draw = () => {
+    const current = steps[step];
+    $("result-content").innerHTML = `
+      <div class="result-inner tutorial-modal">
+        <p class="eyebrow">First game · ${step + 1} of ${steps.length}</p>
+        <h2>${current.title}</h2>
+        <p>${current.text}</p>
+        <div class="modal-actions">
+          <button id="tutorial-next" class="button button-primary">${step === steps.length - 1 ? "Start Turn 1" : "Next"}</button>
+          <button id="tutorial-skip" class="button button-ghost">Skip tutorial</button>
+        </div>
+      </div>`;
+    $("result-modal").showModal();
+    $("tutorial-next").addEventListener("click", () => {
+      if (step === steps.length - 1) {
+        state.tutorialSeen = true;
+        saveGame();
+        $("result-modal").close();
+        onComplete();
+      } else {
+        step += 1;
+        draw();
+      }
+    });
+    $("tutorial-skip").addEventListener("click", () => {
+      state.tutorialSeen = true;
+      saveGame();
+      $("result-modal").close();
+      onComplete();
+    });
+  };
+  draw();
 }
 
 function showRulesAndDice(page = "dice", onClose = null) {
@@ -2306,6 +2510,10 @@ function showRulesAndDice(page = "dice", onClose = null) {
 }
 
 async function endGame(reason) {
+  if (state.turn === 2 && state.people <= 0) {
+    awardAchievements(["lost-turn-two"]);
+  }
+  evaluateAchievements();
   state.gameOver = true;
 
   clearSavedGame();
