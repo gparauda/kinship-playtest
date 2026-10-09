@@ -76,9 +76,9 @@ const ACHIEVEMENTS = [
   { id: "turn-50", name: "Half Light", shape: "sun", description: "Reach Turn 50." },
   { id: "turn-100", name: "Long Night", shape: "sun", description: "Reach Turn 100." },
   { id: "first-era-claim", name: "Doorstep", shape: "gate", description: "Claim an era's Prestige chip on its first turn." },
-  { id: "lost-turn-two", name: "Empty Chair", shape: "eclipse", rare: true, ultraRare: true },
   { id: "five-skulls", name: "Fivefold Omen", shape: "star", rare: true },
   { id: "face-five-upgrades", name: "Patient Hammer", shape: "anvil", rare: true },
+  { id: "lost-turn-two", name: "Empty Chair", shape: "eclipse", rare: true, ultraRare: true },
 ];
 
 /*
