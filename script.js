@@ -703,7 +703,7 @@ function startGame(event) {
   startRemoteSession();
 
   if (state.firstGame) {
-    showTutorial(() => beginTurn());
+    showRulesAndDice("rules", () => showTutorial(() => beginTurn()));
   } else {
     showRulesAndDice("rules", () => beginTurn());
   }
