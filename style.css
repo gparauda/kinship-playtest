@@ -1062,6 +1062,34 @@ body {
 .achievement small { margin-top: 3px; color: var(--muted); font: 10px/1.35 Manrope, sans-serif; }
 .achievement em { color: #966d14; font: 700 9px "DM Mono", monospace; text-transform: uppercase; }
 
+.achievement-progress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.achievement-progress::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: #deded5;
+}
+
+.achievement-progress span {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--moss);
+}
+
+.achievement-progress small { grid-column: 2; grid-row: 1; margin: 0; font-family: "DM Mono", monospace; }
+
 @media (max-width: 620px) {
   .topbar-actions {
     gap: 5px;

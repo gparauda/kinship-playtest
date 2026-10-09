@@ -68,16 +68,16 @@ const ACHIEVEMENTS = [
   { id: "fifteen-people", name: "Full House", shape: "hexagon", description: "Reach 15 people in one community." },
   { id: "twenty-five-prayer", name: "Votive Hoard", shape: "crescent", description: "Hold 25 Prayer at once." },
   { id: "fifty-food", name: "Winter Larder", shape: "shield", description: "Store 50 Food at once." },
-  { id: "ten-material", name: "Tenfold Strand", shape: "knot", description: "Hold 10 of a single Technology material." },
-  { id: "five-upgrades", name: "First Notch", shape: "diamond", description: "Make 5 upgrades in one game." },
-  { id: "fifteen-upgrades", name: "Second Notch", shape: "diamond", description: "Make 15 upgrades in one game." },
-  { id: "twenty-five-upgrades", name: "Third Notch", shape: "diamond", description: "Make 25 upgrades in one game." },
-  { id: "turn-25", name: "Quarter Light", shape: "sun", description: "Reach Turn 25." },
-  { id: "turn-50", name: "Half Light", shape: "sun", description: "Reach Turn 50." },
-  { id: "turn-100", name: "Long Night", shape: "sun", description: "Reach Turn 100." },
+  { id: "ten-material", name: "Unlucky Researcher", shape: "knot", description: "Hold 10 of a single Technology material." },
+  { id: "five-upgrades", name: "In for the Long Haul", shape: "diamond", description: "Make 5 upgrades in one game." },
+  { id: "fifteen-upgrades", name: "Upgrades, People", shape: "diamond", description: "Make 15 upgrades in one game." },
+  { id: "twenty-five-upgrades", name: "The Future Is Now", shape: "diamond", description: "Make 25 upgrades in one game." },
+  { id: "turn-25", name: "Back from the Brink", shape: "sun", description: "Reach Turn 25." },
+  { id: "turn-50", name: "Getting Your Footing", shape: "sun", description: "Reach Turn 50." },
+  { id: "turn-100", name: "What Now?", shape: "sun", description: "Reach Turn 100." },
   { id: "first-era-claim", name: "Doorstep", shape: "gate", description: "Claim an era's Prestige chip on its first turn." },
-  { id: "five-skulls", name: "Fivefold Omen", shape: "star", rare: true },
-  { id: "face-five-upgrades", name: "Patient Hammer", shape: "anvil", rare: true },
+  { id: "five-skulls", name: "Land of the Dead", shape: "star", rare: true },
+  { id: "face-five-upgrades", name: "The Gambler", shape: "anvil", rare: true },
   { id: "lost-turn-two", name: "Empty Chair", shape: "eclipse", rare: true, ultraRare: true },
 ];
 
@@ -393,7 +393,7 @@ function evaluateAchievements({ huntSkulls = 0 } = {}) {
   ]);
 }
 
-function achievementHTML(achievement, earned) {
+function achievementHTML(achievement, earned, progress = "") {
   const hidden = achievement.rare && !earned;
   return `
     <article class="achievement ${earned ? "earned" : "locked"} ${achievement.rare ? "rare" : ""}">
@@ -401,21 +401,47 @@ function achievementHTML(achievement, earned) {
       <div>
         <strong>${earned ? achievement.name : hidden ? "Hidden achievement" : achievement.name}</strong>
         <small>${hidden ? "" : achievement.description || ""}</small>
+        ${progress}
       </div>
       ${achievement.ultraRare ? '<em>Ultra rare</em>' : achievement.rare ? '<em>Rare</em>' : ""}
     </article>`;
 }
 
+function progressionAchievementHTML(ids, earned) {
+  const milestones = ids.map((id) => ACHIEVEMENTS.find((achievement) => achievement.id === id));
+  const completed = milestones.filter((achievement) => earned[achievement.id]).length;
+  const target = milestones.find((achievement) => !earned[achievement.id]) || milestones[milestones.length - 1];
+  const progress = `
+    <div class="achievement-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${milestones.length}" aria-valuenow="${completed}" aria-label="${completed} of ${milestones.length} milestones complete">
+      <span style="width: ${(completed / milestones.length) * 100}%"></span>
+      <small>${completed} / ${milestones.length}</small>
+    </div>`;
+
+  return achievementHTML(target, completed === milestones.length, progress);
+}
+
 function showAchievements() {
   const earned = earnedAchievements();
   const complete = ACHIEVEMENTS.filter((achievement) => earned[achievement.id]).length;
+  const upgradeIds = ["five-upgrades", "fifteen-upgrades", "twenty-five-upgrades"];
+  const turnIds = ["turn-25", "turn-50", "turn-100"];
+  const progressionIds = new Set([...upgradeIds, ...turnIds]);
+  const standardAchievements = ACHIEVEMENTS.filter(
+    (achievement) => !progressionIds.has(achievement.id) && !achievement.rare
+  );
+  const rareAchievements = ACHIEVEMENTS.filter((achievement) => achievement.rare);
 
   $("result-content").innerHTML = `
     <div class="result-inner reference-modal achievements-modal">
       <p class="eyebrow">Persistent record</p>
       <h2>Achievements <span class="achievement-total">${complete} / ${ACHIEVEMENTS.length}</span></h2>
       <p class="modal-note">Achievements remain unlocked across every game played in this browser.</p>
-      <div class="achievement-list">${ACHIEVEMENTS.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}</div>
+      <div class="achievement-list">
+        ${standardAchievements.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}
+        ${progressionAchievementHTML(upgradeIds, earned)}
+        ${progressionAchievementHTML(turnIds, earned)}
+        ${rareAchievements.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}
+      </div>
       <button id="achievements-close" class="button button-primary">Close</button>
     </div>`;
   $("result-modal").showModal();
