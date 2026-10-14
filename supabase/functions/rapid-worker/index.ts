@@ -25,6 +25,18 @@ Deno.serve(async (request) => {
     const body = await request.json();
     const { action } = body;
 
+    // Keep this guard in place while the formal collection workflow is built.
+    // It blocks both new games and writes from previously opened browser tabs.
+    if (["start_session", "record_turn", "finish_session"].includes(action)) {
+      return reply(
+        {
+          error:
+            "Kinship data collection is temporarily paused. Please refresh later.",
+        },
+        503
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -36,26 +48,21 @@ Deno.serve(async (request) => {
       const openingNotes = String(body.openingNotes ?? "").trim();
 
       const gender = String(body.gender ?? "prefer_not_to_say").trim();
-      const age = Number(body.age);
+      const ageBand = String(body.ageBand ?? "").trim();
       const firstGame = body.firstGame;
       if (typeof firstGame !== "boolean") {
         return reply({ error: "Please answer whether this is your first Kinship game." }, 400);
       }
 
-
-      if (!Number.isInteger(age) || age < 18 || age > 100) {
-        return reply({ error: "Please enter a valid age from 18 to 100." }, 400);
-      }
       const gameExperience = String(body.gameExperience ?? "").trim();
 
       const validGenders = ["male", "female", "prefer_not_to_say"];
-      const validAgeRanges = [
-        "under_18",
+      const validAgeBands = [
+        "17_or_below",
         "18_24",
-        "25_49",
-        "50_64",
-        "65_plus",
-        "prefer_not_to_say",
+        "25_39",
+        "40_55",
+        "56_plus",
       ];
       const validExperience = [
         "never",
@@ -75,6 +82,10 @@ Deno.serve(async (request) => {
         return reply({ error: "Invalid gender response." }, 400);
       }
 
+      if (!validAgeBands.includes(ageBand)) {
+        return reply({ error: "Please choose an age range." }, 400);
+      }
+
 
       if (!validExperience.includes(gameExperience)) {
         return reply({ error: "Invalid game-experience response." }, 400);
@@ -87,7 +98,7 @@ Deno.serve(async (request) => {
           playtest_condition: condition || null,
           opening_notes: openingNotes || null,
           gender,
-          age: age,
+          age_band: ageBand,
           game_experience: gameExperience,
           first_game: firstGame,
         })
