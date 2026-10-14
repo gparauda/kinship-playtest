@@ -44,22 +44,6 @@ Deno.serve(async (request) => {
     const body = await request.json();
     const { action } = body;
 
-    // Keep this guard in place while the formal collection workflow is built.
-    // It blocks both new games and writes from previously opened browser tabs.
-    if (
-      ["start_session", "record_turn", "finish_session", "sync_achievements"].includes(
-        action
-      )
-    ) {
-      return reply(
-        {
-          error:
-            "Kinship data collection is temporarily paused. Please refresh later.",
-        },
-        503
-      );
-    }
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
