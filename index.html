@@ -86,16 +86,15 @@
   </select>
 </label>
 
-<label for="age">Age</label>
-<input
-  id="age"
-  type="number"
-  min="18"
-  max="100"
-  step="1"
-  required
-  placeholder="Enter your age"
-/>
+<label for="age-band">Age range</label>
+<select id="age-band" name="ageBand" required>
+  <option value="" selected disabled>Choose an answer</option>
+  <option value="17_or_below">17 or below</option>
+  <option value="18_24">18–24</option>
+  <option value="25_39">25–39</option>
+  <option value="40_55">40–55</option>
+  <option value="56_plus">56+</option>
+</select>
 
 <label>
   Game experience
@@ -285,6 +284,6 @@
     </dialog>
 
     <script src="supabase-config.js"></script>
-    <script src="script.js?v=20261009-5"></script>
+    <script src="script.js?v=20261014-1"></script>
   </body>
 </html>

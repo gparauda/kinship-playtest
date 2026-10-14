@@ -556,7 +556,7 @@ async function startRemoteSession() {
     condition: state.condition,
     openingNotes: state.openingNotes,
     gender: state.gender,
-    age: state.age,
+    ageBand: state.ageBand,
     gameExperience: state.gameExperience,
     firstGame: state.firstGame,
   });
@@ -611,7 +611,7 @@ async function finishRemoteSession(reason) {
     victory: reason.startsWith("Victory"),
     playerName: state.playerName,
     gender: state.gender,
-    age: state.age,
+    ageBand: state.ageBand,
     gameExperience: state.gameExperience,
   });
 
@@ -665,7 +665,7 @@ function createNewState() {
     openingNotes: $("opening-notes").value.trim(),
 
     gender: $("gender").value,
-    age: Number($("age").value),
+    ageBand: $("age-band").value,
     gameExperience: $("game-experience").value,
     firstGame: $("first-game").value === "yes",
 
@@ -1514,7 +1514,7 @@ function resolveTurn() {
     protected: state.protected ? "Yes" : "No",
 
     gender: state.gender,
-    age: Number($("age").value),
+    ageBand: state.ageBand,
     gameExperience: state.gameExperience,
     firstGame: state.firstGame,
 
@@ -1743,7 +1743,7 @@ function resolveTurn() {
     threat: research.threat,
     protected: research.protected,
     gender: research.gender,
-    age: Number($("age").value),
+    ageBand: research.ageBand,
     gameExperience: research.gameExperience,
     firstGame: research.firstGame,
     foodWorkers: research.foodWorkers,
