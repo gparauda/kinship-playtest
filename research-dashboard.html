@@ -42,7 +42,7 @@
 
         <section class="panel">
           <h2>Exploratory linear regression</h2>
-          <p class="subtle">Outcome: turns survived. Decision predictors are average worker allocations across the full game, so treat this as descriptive rather than causal.</p>
+          <p class="subtle">Outcome: turns survived. Predictors use only the first 10 turns, so later decisions do not leak the outcome into the model.</p>
           <button id="run-regression" type="button">Fit model to filtered sessions</button>
           <pre id="regression-output">Load data, then fit the model.</pre>
         </section>

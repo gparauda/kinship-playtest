@@ -322,13 +322,17 @@ Deno.serve(async (request) => {
     if (action === "get_analysis") {
       const dashboardPassword = String(body.dashboardPassword ?? "");
       const expectedPassword = Deno.env.get("RESEARCH_DASHBOARD_PASSWORD");
+      const analysisView =
+        body.dataset === "first_10"
+          ? "kinship_session_analysis_first_10"
+          : "kinship_session_analysis";
 
       if (!expectedPassword || dashboardPassword !== expectedPassword) {
         return reply({ error: "Researcher access is required." }, 401);
       }
 
       const { data, error } = await supabase
-        .from("kinship_session_analysis")
+        .from(analysisView)
         .select("*")
         .order("session_id", { ascending: true })
         .limit(5000);
