@@ -7,6 +7,8 @@
 
 const SAVE_KEY = "kinship-playtest-save-v3";
 const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
+const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
+const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
 
 const GAME_TEXT = {
   firstTurnTitle: "First Turn",
@@ -334,6 +336,35 @@ let state = null;
 
 const $ = (id) => document.getElementById(id);
 
+function participantId(create = true) {
+  const saved = localStorage.getItem(PARTICIPANT_ID_KEY);
+  if (saved || !create) return saved;
+
+  const id = crypto.randomUUID();
+  localStorage.setItem(PARTICIPANT_ID_KEY, id);
+  return id;
+}
+
+function saveParticipantProfile(profile) {
+  localStorage.setItem(PARTICIPANT_PROFILE_KEY, JSON.stringify(profile));
+}
+
+function restoreParticipantProfile() {
+  try {
+    const profile = JSON.parse(localStorage.getItem(PARTICIPANT_PROFILE_KEY));
+    if (!profile) return;
+
+    $("player-name").value = profile.playerName || "";
+    $("gender").value = profile.gender || "prefer_not_to_say";
+    $("age-band").value = profile.ageBand || "";
+    $("game-experience").value = profile.gameExperience || "never";
+
+    if (participantId(false)) $("first-game").value = "no";
+  } catch {
+    localStorage.removeItem(PARTICIPANT_PROFILE_KEY);
+  }
+}
+
 function earnedAchievements() {
   try {
     return JSON.parse(localStorage.getItem(ACHIEVEMENTS_KEY)) || {};
@@ -344,16 +375,19 @@ function earnedAchievements() {
 
 function awardAchievements(ids) {
   const earned = earnedAchievements();
-  let changed = false;
+  const newlyEarned = [];
 
   ids.forEach((id) => {
     if (!earned[id]) {
       earned[id] = true;
-      changed = true;
+      newlyEarned.push(id);
     }
   });
 
-  if (changed) localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned));
+  if (newlyEarned.length) {
+    localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned));
+    syncAchievements(newlyEarned);
+  }
 }
 
 function upgradesMade() {
@@ -553,6 +587,7 @@ async function startRemoteSession() {
 
   const data = await callKinshipSync("start_session", {
     playerName: state.playerName,
+    participantId: state.participantId,
     condition: state.condition,
     openingNotes: state.openingNotes,
     gender: state.gender,
@@ -564,10 +599,35 @@ async function startRemoteSession() {
   if (data?.sessionId) {
     state.remoteSessionId = data.sessionId;
     saveGame();
+    await syncAchievements(Object.keys(earnedAchievements()));
     return data.sessionId;
   }
 
   return null;
+}
+
+async function syncAchievements(achievementIds) {
+  const id = state?.participantId || participantId(false);
+  if (!id || !achievementIds.length) return;
+
+  await callKinshipSync("sync_achievements", {
+    participantId: id,
+    achievementIds,
+  });
+}
+
+async function loadRemoteAchievements() {
+  const id = participantId(false);
+  if (!id) return;
+
+  const data = await callKinshipSync("get_achievements", { participantId: id });
+  if (!data?.achievementIds?.length) return;
+
+  const earned = earnedAchievements();
+  data.achievementIds.forEach((id) => {
+    earned[id] = true;
+  });
+  localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned));
 }
 
 async function syncTurnToSupabase(turn) {
@@ -609,6 +669,7 @@ async function finishRemoteSession(reason) {
     finalPrayer: state.prayer,
     legacyChips: state.legacy.filter(Boolean).length,
     victory: reason.startsWith("Victory"),
+    endReason: reason,
     playerName: state.playerName,
     gender: state.gender,
     ageBand: state.ageBand,
@@ -659,14 +720,21 @@ function escapeHTML(value) {
 }
 
 function createNewState() {
-  return {
+  const profile = {
     playerName: $("player-name").value.trim() || "Player",
-    condition: "standard",
-    openingNotes: $("opening-notes").value.trim(),
-
     gender: $("gender").value,
     ageBand: $("age-band").value,
     gameExperience: $("game-experience").value,
+  };
+
+  saveParticipantProfile(profile);
+
+  return {
+    ...profile,
+    participantId: participantId(),
+    condition: "standard",
+    openingNotes: $("opening-notes").value.trim(),
+
     firstGame: $("first-game").value === "yes",
 
     turn: 1,
@@ -746,6 +814,7 @@ function restoreSavedGame() {
 
   try {
     state = JSON.parse(saved);
+    state.participantId = state.participantId || participantId();
     // Innovation was added after the first playtest save format.
     state.innovation = Number.isInteger(state.innovation)
       ? state.innovation
@@ -835,7 +904,9 @@ $("end-game").addEventListener("click", () =>
   endGame("Session ended early.")
 );
 
+restoreParticipantProfile();
 loadLeaderboard();
+loadRemoteAchievements();
 restoreSavedGame();
 function beginTurn() {
   if (state.gameOver) return;

@@ -1,0 +1,10 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #1f2937; background: #f7f5ef; }
+body { margin: 0; } main { max-width: 1200px; margin: auto; padding: 2rem; }
+header { margin-bottom: 1.5rem; } h1, h2, p { margin-top: 0; } h1 { margin-bottom: .35rem; }
+.eyebrow { color: #73603c; font-size: .78rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.panel, .metric { background: #fff; border: 1px solid #e5dfd3; border-radius: 12px; padding: 1.2rem; box-shadow: 0 2px 10px #3d34220d; }
+.narrow { max-width: 420px; } label { display: grid; gap: .35rem; font-weight: 600; }
+input, select, button { font: inherit; padding: .55rem .65rem; border-radius: 7px; border: 1px solid #bcb4a5; }
+button { cursor: pointer; border: 0; background: #614f2e; color: white; font-weight: 700; margin-top: 1rem; }
+.message { min-height: 1.25rem; color: #a12626; margin: .75rem 0 0; }.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.metric strong { display: block; font-size: 1.75rem; }.controls { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .8rem; margin-bottom: 1rem; }.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }.subtle { color: #5c6470; font-size: .92rem; } pre { overflow: auto; background: #29261f; color: #f7f0df; padding: 1rem; border-radius: 8px; }.table-wrap { overflow: auto; } table { border-collapse: collapse; width: 100%; } th, td { border-bottom: 1px solid #eee8dc; padding: .5rem; text-align: left; white-space: nowrap; } @media (max-width: 800px) { .metrics, .charts, .controls { grid-template-columns: 1fr; } }

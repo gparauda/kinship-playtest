@@ -6,6 +6,25 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const participantIdPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const achievementIds = new Set([
+  "fifteen-people",
+  "twenty-five-prayer",
+  "fifty-food",
+  "ten-material",
+  "five-upgrades",
+  "fifteen-upgrades",
+  "twenty-five-upgrades",
+  "turn-25",
+  "turn-50",
+  "turn-100",
+  "first-era-claim",
+  "five-skulls",
+  "face-five-upgrades",
+  "lost-turn-two",
+]);
+
 function reply(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -27,7 +46,11 @@ Deno.serve(async (request) => {
 
     // Keep this guard in place while the formal collection workflow is built.
     // It blocks both new games and writes from previously opened browser tabs.
-    if (["start_session", "record_turn", "finish_session"].includes(action)) {
+    if (
+      ["start_session", "record_turn", "finish_session", "sync_achievements"].includes(
+        action
+      )
+    ) {
       return reply(
         {
           error:
@@ -46,6 +69,7 @@ Deno.serve(async (request) => {
       const playerName = String(body.playerName ?? "").trim();
       const condition = String(body.condition ?? "").trim();
       const openingNotes = String(body.openingNotes ?? "").trim();
+      const participantId = String(body.participantId ?? "").trim();
 
       const gender = String(body.gender ?? "prefer_not_to_say").trim();
       const ageBand = String(body.ageBand ?? "").trim();
@@ -78,6 +102,10 @@ Deno.serve(async (request) => {
         );
       }
 
+      if (!participantIdPattern.test(participantId)) {
+        return reply({ error: "Invalid participant profile." }, 400);
+      }
+
       if (!validGenders.includes(gender)) {
         return reply({ error: "Invalid gender response." }, 400);
       }
@@ -91,6 +119,29 @@ Deno.serve(async (request) => {
         return reply({ error: "Invalid game-experience response." }, 400);
       }
 
+      const { error: participantError } = await supabase
+        .from("kinship_participants")
+        .upsert(
+          {
+            id: participantId,
+            display_name: playerName,
+            gender,
+            age_band: ageBand,
+            game_experience: gameExperience,
+            last_seen_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
+
+      if (participantError) throw participantError;
+
+      const { count: priorSessions, error: priorSessionsError } = await supabase
+        .from("kinship_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("participant_id", participantId);
+
+      if (priorSessionsError) throw priorSessionsError;
+
       const { data, error } = await supabase
         .from("kinship_sessions")
         .insert({
@@ -100,7 +151,9 @@ Deno.serve(async (request) => {
           gender,
           age_band: ageBand,
           game_experience: gameExperience,
-          first_game: firstGame,
+          first_game: (priorSessions ?? 0) === 0,
+          participant_id: participantId,
+          game_version: "2026-10-14",
         })
         .select("id")
         .single();
@@ -144,6 +197,7 @@ Deno.serve(async (request) => {
         hunt_rolls: turn.huntRolls ?? [],
         technology_rolls: turn.technologyRolls ?? [],
         worship_rolls: turn.worshipRolls ?? [],
+        projects_started: turn.projectsStarted ?? 0,
         upgrades_chosen: turn.upgradesChosen ?? [],
         sacrifice_rewards: turn.sacrificeRewards ?? [],
 
@@ -174,6 +228,7 @@ Deno.serve(async (request) => {
         legacyChips,
         victory,
         playerName,
+        endReason,
       } = body;
 
       if (!sessionId || !playerName) {
@@ -191,6 +246,7 @@ Deno.serve(async (request) => {
           final_prayer: finalPrayer,
           legacy_chips: legacyChips,
           victory: Boolean(victory),
+          end_reason: String(endReason ?? "").trim() || null,
         })
         .eq("id", sessionId);
 
@@ -219,6 +275,68 @@ Deno.serve(async (request) => {
       if (leaderboardReadError) throw leaderboardReadError;
 
       return reply({ saved: true, leaderboard });
+    }
+
+    if (action === "sync_achievements") {
+      const participantId = String(body.participantId ?? "").trim();
+      const ids = Array.isArray(body.achievementIds) ? body.achievementIds : [];
+      const validIds = [...new Set(ids.map(String))].filter((id) => achievementIds.has(id));
+
+      if (!participantIdPattern.test(participantId)) {
+        return reply({ error: "Invalid participant profile." }, 400);
+      }
+
+      if (validIds.length === 0) return reply({ saved: true });
+
+      const { error } = await supabase
+        .from("kinship_participant_achievements")
+        .upsert(
+          validIds.map((achievement_id) => ({
+            participant_id: participantId,
+            achievement_id,
+          })),
+          { onConflict: "participant_id,achievement_id", ignoreDuplicates: true }
+        );
+
+      if (error) throw error;
+
+      return reply({ saved: true });
+    }
+
+    if (action === "get_achievements") {
+      const participantId = String(body.participantId ?? "").trim();
+      if (!participantIdPattern.test(participantId)) {
+        return reply({ error: "Invalid participant profile." }, 400);
+      }
+
+      const { data, error } = await supabase
+        .from("kinship_participant_achievements")
+        .select("achievement_id")
+        .eq("participant_id", participantId);
+
+      if (error) throw error;
+
+      return reply({ achievementIds: (data ?? []).map((row) => row.achievement_id) });
+    }
+
+    if (action === "get_analysis") {
+      const dashboardPassword = String(body.dashboardPassword ?? "");
+      const expectedPassword = Deno.env.get("RESEARCH_DASHBOARD_PASSWORD");
+
+      if (!expectedPassword || dashboardPassword !== expectedPassword) {
+        return reply({ error: "Researcher access is required." }, 401);
+      }
+
+      const { data, error } = await supabase
+        .from("kinship_session_analysis")
+        .select("*")
+        .order("session_id", { ascending: true })
+        .limit(5000);
+
+      if (error) throw error;
+
+      const sessions = (data ?? []).map(({ participant_id, ...session }) => session);
+      return reply({ sessions });
     }
 
     if (action === "get_leaderboard") {
