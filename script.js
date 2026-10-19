@@ -334,6 +334,56 @@ const EVENT_DECKS = [
   ],
 ];
 
+// Classic event text expands each era's deck without changing its modifiers.
+// Each entry mirrors the event in the matching position in EVENT_DECKS.
+const CLASSIC_EVENT_TEXT = [
+  [
+    { title: "Mild Winter", description: "Cold weather slows gathering. Your final Food total is reduced by 2 this turn." },
+    { title: "Easy Trails", description: "Fresh tracks cut across the valley. Your final Hunt total gains +2 this turn." },
+    { title: "Cold Rain", description: "The rain soaks kindling and stores. Lose 2 Food." },
+    { title: "Rocky Terrain", description: "The hunt moves through difficult ground. Your final Hunt total is reduced by 3 this turn." },
+    { title: "Broken Tools", description: "Gathering is slowed while tools are repaired. Your final Food total is reduced by 1 this turn." },
+    { title: "Lost Path", description: "A familiar route vanishes beneath fallen branches. Kinship projects take 1 additional turn." },
+    { title: "Foraging Patch", description: "A sheltered patch of roots is found. Your final Food total gains +1 this turn." },
+  ],
+  [
+    { title: "Harsh Winter", description: "Gathering is slowed by bitter cold. Your final Food total is reduced by 3 this turn." },
+    { title: "Predator Activity", description: "Hunters find signs of a dangerous rival. Your final Hunt total is reduced by 3 this turn." },
+    { title: "Thin Forage", description: "The usual plants are sparse. Your final Food total is reduced by 2 this turn." },
+    { title: "Spoiled Stores", description: "Part of the community's stored food is lost." },
+    { title: "Restless Nights", description: "Anxious vigils disrupt the camp. Kinship projects take 1 additional turn." },
+    { title: "Flash Frost", description: "A sudden frost spoils gathered plants. Your final Food total is reduced by 2 this turn." },
+    { title: "Torn Nets", description: "The best hunting gear needs mending. Your final Hunt total is reduced by 2 this turn." },
+  ],
+  [
+    { title: "Endless Winter", description: "Cold and hunger linger. Your final Food total is reduced by 3, and 4 stored Food is lost." },
+    { title: "Dwindling Herds", description: "Finding game requires a longer and riskier hunt. Your final Hunt total is reduced by 4 this turn." },
+    { title: "Illness", description: "Caring for the sick delays community projects." },
+    { title: "Great Flood", description: "Floodwater carries away stored supplies." },
+    { title: "Sheltered Ritual", description: "A protected gathering strengthens resolve. Your final Prayer gain gets +1 this turn." },
+    { title: "Wolf Pack", description: "Predators circle the hunting grounds. Your final Hunt total is reduced by 2 this turn." },
+    { title: "Mudslide", description: "A slope gives way and buries part of the stores. Lose 5 Food." },
+  ],
+  [
+    { title: "Deep Freeze", description: "The land becomes difficult to work. Your final Food total is reduced by 4 this turn." },
+    { title: "Famine", description: "Even successful gathering brings back little. Your final Food total is reduced by 2 and 12 stored Food is lost." },
+    { title: "Predator Surge", description: "The hunt is shadowed by dangerous predators. Your final Hunt total is reduced by 5 this turn." },
+    { title: "Widespread Illness", description: "Several projects slow while the community recovers." },
+    { title: "Contested Ground", description: "Other groups force a long detour. Your final Hunt total is reduced by 3 this turn." },
+    { title: "Ashfall", description: "Ash settles over the valley and smothers edible growth. Your final Food total is reduced by 3 this turn." },
+    { title: "Fractured Trail", description: "Travel between camps becomes slow and uncertain. Kinship projects take 1 additional turn." },
+  ],
+  [
+    { title: "Bitter Winter", description: "A final hard winter tests everything built. Your final Food total is reduced by 4 and 20 stored Food is lost." },
+    { title: "Great Famine", description: "Food stores are devastated." },
+    { title: "Vanishing Herds", description: "The last familiar hunting grounds have emptied. Your final Hunt total is reduced by 7 this turn." },
+    { title: "Plague", description: "Illness and scarcity strike at once. Your final Food total is reduced by 2 and Kinship projects take longer." },
+    { title: "Windfall Cache", description: "An old cache is uncovered before the storms. Your final Food total gains +2 this turn." },
+    { title: "Blizzard", description: "Whiteout conditions halt most gathering. Your final Food total is reduced by 3 this turn." },
+    { title: "Raided Stores", description: "Desperate rivals find the hidden stores. Lose 25 Food." },
+  ],
+];
+
 let state = null;
 
 const $ = (id) => document.getElementById(id);
@@ -509,7 +559,11 @@ function currentEvent() {
     };
   }
 
-  const deck = EVENT_DECKS[currentEraIndex()];
+  const era = currentEraIndex();
+  const deck = EVENT_DECKS[era].flatMap((event, index) => [
+    event,
+    { ...event, ...CLASSIC_EVENT_TEXT[era][index] },
+  ]);
   return deck[Math.floor(Math.random() * deck.length)];
 }
 
