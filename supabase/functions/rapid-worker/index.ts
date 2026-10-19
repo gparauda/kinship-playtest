@@ -10,7 +10,7 @@ const participantIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const achievementIds = new Set([
   "fifteen-people",
-  "twenty-five-prayer",
+  "devout-heretic",
   "fifty-food",
   "ten-material",
   "five-upgrades",
@@ -137,7 +137,7 @@ Deno.serve(async (request) => {
           game_experience: gameExperience,
           first_game: (priorSessions ?? 0) === 0,
           participant_id: participantId,
-          game_version: "2026-10-14",
+          game_version: "2026-10-18-balance-v1",
         })
         .select("id")
         .single();
@@ -161,6 +161,7 @@ Deno.serve(async (request) => {
         event_title: turn.event,
         threat: turn.threat,
         protected: turn.protected === "Yes",
+        protection_cost: turn.protectionCost ?? 0,
 
         food_workers: turn.foodWorkers ?? 0,
         kinship_workers: turn.kinshipWorkers ?? 0,

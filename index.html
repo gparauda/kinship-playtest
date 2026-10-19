@@ -13,7 +13,7 @@
       rel="stylesheet"
     />
 
-    <link rel="stylesheet" href="style.css?v=20261009-5" />
+    <link rel="stylesheet" href="style.css?v=20261018-1" />
   </head>
 
   <body>
@@ -46,14 +46,16 @@
           <p class="eyebrow">Honors thesis playtest</p>
           <h1>How long can your civilization last?</h1>
           <p>
-            Allocate your people through one hundred turns of uncertainty.
-            Sustain the community and earn one Prestige chip in each era.
+            You lead what remains of your civilization: a tribe of five trying
+            to stave off extinction across five eras. Feed your people,
+            rebuild kinship, advance technology, and establish a divine legacy.
           </p>
 
           <div class="rule-chips">
             <span>5 eras</span>
             <span>100 turns</span>
           </div>
+          <p class="setup-rule-note">A detailed rules guide with examples is available at any time from <strong>Rules &amp; dice</strong>.</p>
         </div>
 
         <!--
@@ -236,6 +238,13 @@
     </div>
     <div id="technologies" class="technologies"></div>
   </section>
+  <section id="kinship-panel" class="panel kinship-panel" aria-label="Ongoing Kinship projects">
+    <div class="panel-title-row">
+      <p class="eyebrow">Community bonds</p>
+      <span id="kinship-count" class="small-muted">No projects</span>
+    </div>
+    <div id="kinship-projects" class="kinship-projects"></div>
+  </section>
 <section class="panel leaderboard-panel">
   <div class="panel-title-row">
     <div>
@@ -284,6 +293,6 @@
     </dialog>
 
     <script src="supabase-config.js"></script>
-    <script src="script.js?v=20261014-2"></script>
+    <script src="script.js?v=20261018-1"></script>
   </body>
 </html>

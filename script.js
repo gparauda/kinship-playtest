@@ -5,17 +5,18 @@
   Player-facing wording is in GAME_TEXT, ACTIONS, EVENT_DECKS, and rulesHTML().
 */
 
-const SAVE_KEY = "kinship-playtest-save-v3";
+const SAVE_KEY = "kinship-playtest-save-v4";
 const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
 const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
 const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
+const MAX_PRAYER = 11;
+const PROTECTION_COSTS = [1, 2, 3, 4, 5];
 
 const GAME_TEXT = {
   firstTurnTitle: "First Turn",
   firstTurnDescription:
     "The community begins with a clear view of the road ahead. No event occurs this turn.",
   eventContinue: "Continue to allocation",
-  protectEvent: "Spend 2 Prayer to protect the community",
   protectedEvent: "Prayer protects the community from this event.",
 };
 
@@ -68,7 +69,7 @@ const ERA_NAMES = [
 const LEGACY_COSTS = [3, 5, 7, 9, 11];
 const ACHIEVEMENTS = [
   { id: "fifteen-people", name: "Full House", shape: "hexagon", description: "Reach 15 people in one community." },
-  { id: "twenty-five-prayer", name: "Votive Hoard", shape: "crescent", description: "Hold 25 Prayer at once." },
+  { id: "devout-heretic", name: "Devout Heretic", shape: "crescent", description: "Assign someone to Worship while holding the maximum 11 Prayer." },
   { id: "fifty-food", name: "Winter Larder", shape: "shield", description: "Store 50 Food at once." },
   { id: "ten-material", name: "Unlucky Researcher", shape: "knot", description: "Hold 10 of a single Technology material." },
   { id: "five-upgrades", name: "In for the Long Haul", shape: "diamond", description: "Make 5 upgrades in one game." },
@@ -413,7 +414,6 @@ function evaluateAchievements({ huntSkulls = 0 } = {}) {
 
   awardAchievements([
     ...(state.people >= 15 ? ["fifteen-people"] : []),
-    ...(state.prayer >= 25 ? ["twenty-five-prayer"] : []),
     ...(state.food >= 50 ? ["fifty-food"] : []),
     ...(materialPeak >= 10 ? ["ten-material"] : []),
     ...(upgradeTotal >= 5 ? ["five-upgrades"] : []),
@@ -869,7 +869,28 @@ $("dice-btn").addEventListener("click", () => showRulesAndDice("dice"));
 $("achievements-btn").addEventListener("click", showAchievements);
 
 function openSavedInnovationMenu() {
-  if (!state || state.gameOver || state.innovation < 1 || !hasAvailableUpgrade()) return;
+  if (!state || state.gameOver) return;
+
+  if (state.turnPhase !== "allocation") {
+    showSimpleModal(
+      "Innovation is ready",
+      "You may spend saved Innovation after the event is revealed and before resolving this turn's allocation."
+    );
+    return;
+  }
+
+  if (state.innovation < 1) {
+    showSimpleModal(
+      "No saved Innovation",
+      "Complete a set of Stick, Rope, and Rock—or earn Innovation from a Devout Sacrifice—then return here to upgrade a die face."
+    );
+    return;
+  }
+
+  if (!hasAvailableUpgrade()) {
+    showSimpleModal("All upgrades complete", "Every eligible die face has already been fully improved.");
+    return;
+  }
 
   showTechnologyUpgrade(null, false, () => {
     saveGame();
@@ -1024,6 +1045,10 @@ function canStartKinshipProject() {
   return projectedCommunitySize() < communityCapacity();
 }
 
+function protectionCost() {
+  return PROTECTION_COSTS[currentEraIndex()];
+}
+
 function ensureEraTurnHint() {
   let hint = $("era-turns-left");
 
@@ -1078,6 +1103,7 @@ function render() {
   renderActions();
   renderResources();
   renderTechnologies();
+  renderKinshipProjects();
   renderLegacy();
   renderLog();
 
@@ -1164,6 +1190,10 @@ function adjustAllocation(actionId, change) {
     return;
   }
 
+  if (actionId === "W" && change > 0 && state.prayer >= MAX_PRAYER) {
+    awardAchievements(["devout-heretic"]);
+  }
+
   state.allocations[actionId] = nextValue;
   state.turnPhase = "allocation";
 
@@ -1191,7 +1221,7 @@ function renderResources() {
     </div>
 
     <div class="resource">
-      <span class="resource-value">${state.prayer}</span>
+      <span class="resource-value">${state.prayer} / ${MAX_PRAYER}</span>
       <span class="resource-label">Prayer</span>
     </div>
 
@@ -1237,6 +1267,28 @@ function renderTechnologies() {
       `;
     })
     .join("");
+}
+
+function renderKinshipProjects() {
+  const projects = state.kinProjects;
+  $("kinship-count").textContent = projects.length
+    ? `${projects.length} active`
+    : "No projects";
+
+  $("kinship-projects").innerHTML = projects.length
+    ? projects
+        .map(
+          (project, index) => `
+            <div class="kinship-project">
+              <span class="kinship-project-icon">🤝</span>
+              <span>Project ${index + 1}</span>
+              <strong>${project.turnsRemaining} turn${
+                project.turnsRemaining === 1 ? "" : "s"
+              } left</strong>
+            </div>`
+        )
+        .join("")
+    : `<p class="kinship-empty">Assign 2 people to Kinship to begin a project.</p>`;
 }
 
 function renderLegacy() {
@@ -1342,11 +1394,11 @@ function showEventReveal() {
   if (
     !event.firstTurn &&
     !state.preferences.skipProtection &&
-    state.prayer >= 2
+    state.prayer >= protectionCost()
   ) {
     buttons = `
       <button id="event-protect" class="button button-secondary">
-        ${GAME_TEXT.protectEvent}
+        Spend ${protectionCost()} Prayer to protect the community
       </button>
       ${buttons}
     `;
@@ -1418,7 +1470,7 @@ function showEventReveal() {
 
   if (protectButton) {
     protectButton.addEventListener("click", () => {
-      state.prayer -= 2;
+      state.prayer -= protectionCost();
       state.protected = true;
 
       addLog(GAME_TEXT.protectedEvent);
@@ -1583,6 +1635,7 @@ function resolveTurn() {
     threat: event.threat,
     huntTarget: huntTargetForThreat(event.threat),
     protected: state.protected ? "Yes" : "No",
+    protectionCost: state.protected ? protectionCost() : 0,
 
     gender: state.gender,
     ageBand: state.ageBand,
@@ -1738,8 +1791,21 @@ function resolveTurn() {
   }
 
   if (prayerGained > 0) {
-    state.prayer += prayerGained;
-    results.push(`Worship: +${prayerGained} Prayer.`);
+    const actualPrayerGained = Math.max(
+      0,
+      Math.min(MAX_PRAYER - state.prayer, prayerGained)
+    );
+    state.prayer += actualPrayerGained;
+
+    if (actualPrayerGained > 0) {
+      results.push(
+        `Worship: +${actualPrayerGained} Prayer.${
+          actualPrayerGained < prayerGained ? ` Prayer is capped at ${MAX_PRAYER}.` : ""
+        }`
+      );
+    } else {
+      results.push(`Worship: Prayer is already capped at ${MAX_PRAYER}; no Prayer was gained.`);
+    }
   }
 
   if (sacrificeRolls.length > 0) {
@@ -1813,6 +1879,7 @@ function resolveTurn() {
     event: research.event,
     threat: research.threat,
     protected: research.protected,
+    protectionCost: research.protectionCost,
     gender: research.gender,
     ageBand: research.ageBand,
     gameExperience: research.gameExperience,
@@ -2404,14 +2471,19 @@ function showSacrificeChoice(isDevout, research) {
 function rulesHTML() {
   return `
     <div class="rules-copy">
-      <h3>Your goal</h3>
+      <h3>Your charge</h3>
       <p>
-        Survive to Turn 100 and preserve one Sacred Legacy in every era.
-        A Legacy may only be claimed during its own era.
+        You lead what remains of a civilization: five people facing extinction
+        across five eras. Feed the community, rebuild it through Kinship,
+        improve its tools, and secure one Sacred Legacy in each era before
+        surviving to Turn 100.
       </p>
-
-      
-      </p>
+      <div class="rules-example-grid">
+        <article class="rules-example"><span>🌾</span><strong>Feed</strong><small>Food keeps people alive.</small></article>
+        <article class="rules-example"><span>🤝</span><strong>Rebuild</strong><small>Kinship grows the community.</small></article>
+        <article class="rules-example"><span>🛠</span><strong>Adapt</strong><small>Technology improves dice.</small></article>
+        <article class="rules-example"><span>🕯</span><strong>Endure</strong><small>Prayer protects and claims Legacy.</small></article>
+      </div>
 
       <h3>Food and spoilage</h3>
       <p>
@@ -2428,6 +2500,11 @@ function rulesHTML() {
         is lost. If it fails with no Skulls, no Food is gained but no hunter
         is lost.
       </p>
+      <div class="rules-walkthrough">
+        <strong>Example Hunt</strong>
+        <div class="example-row"><span class="example-die">H3 · 3</span><span class="example-die">H5 · 5</span><span>→ 8 versus Threat 8: success, gain 8 Food.</span></div>
+        <div class="example-row"><span class="example-die danger">Skull</span><span class="example-die">H3 · 3</span><span>→ 3 versus Threat 8: fail with a Skull, lose 1 person.</span></div>
+      </div>
 
       <h3>Kinship</h3>
       <p>
@@ -2449,13 +2526,20 @@ function rulesHTML() {
       <h3>Technology</h3>
       <p>
         Technology rolls give Stick, Rope, or Rock. One of each completes a
-        set and saves 1 Innovation. A face's first upgrade costs 1 saved
+        set and saves 1 Innovation. Saved Innovation can be spent from the
+        Craft panel after an event is revealed, before resolving allocation on
+        any later turn. A face's first upgrade costs 1 saved
         Innovation, and each next improvement costs one more than the last.
         Each physical eligible side can be upgraded five times, except W1/W2,
         which can only become Devout once. Hunt
         Skulls and Technology faces cannot be upgraded. Once every eligible
         upgrade is exhausted, Technology sets can no longer be completed.
       </p>
+      <div class="rules-walkthrough">
+        <strong>Example Innovation</strong>
+        <div class="example-row"><span class="example-die">Stick</span><span class="example-die">Rope</span><span class="example-die">Rock</span><span>→ automatically becomes 1 saved Innovation.</span></div>
+        <div class="example-row"><span>Use it now, or save multiple sets for a stronger later improvement.</span></div>
+      </div>
 
       <h3>Worship and Sacrifice</h3>
       <p>
@@ -2482,12 +2566,13 @@ function rulesHTML() {
       </p>
       <h3>Prayer and Sacred Legacy</h3>
       <p>
-        Spend 2 Prayer before allocation to ignore an event’s effects, but
-        Threat remains active. Legacy costs are 3, 5, 7, 9, and 11 Prayer for
-        Eras I–V. Each Legacy must be claimed by Turns 7, 14, 30, 60, and 99
-        respectively.
+        Prayer is capped at ${MAX_PRAYER}. Spend 1, 2, 3, 4, or 5 Prayer before allocation to ignore an event's effects in Eras I–V. Protection never removes Threat. Legacy costs are 3, 5, 7, 9, and 11 Prayer for Eras I–V, and each must be claimed by Turns 7, 14, 30, 60, and 99 respectively.
       </p>
-
+      <div class="rules-walkthrough">
+        <strong>Example Prayer choice</strong>
+        <div class="example-row"><span class="example-die">Era III</span><span class="example-die">3 Prayer</span><span>→ protect the event effect; its Threat still applies to any Hunt.</span></div>
+        <div class="example-row"><span>At 11 Prayer, Worship cannot add more. Spend Prayer on protection or the current Legacy to make room.</span></div>
+      </div>
       <h3>Saving and playtest data</h3>
       <p>
         Your game saves in this browser after every action. Refreshing resumes
