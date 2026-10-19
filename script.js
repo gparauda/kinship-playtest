@@ -5,12 +5,13 @@
   Player-facing wording is in GAME_TEXT, ACTIONS, EVENT_DECKS, and rulesHTML().
 */
 
-const SAVE_KEY = "kinship-playtest-save-v4";
+const SAVE_KEY = "kinship-playtest-save-v5";
 const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
 const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
 const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
 const MAX_PRAYER = 11;
 const PROTECTION_COSTS = [1, 2, 3, 4, 5];
+const FOOD_FACES = [1, 1, 1, 2, 2, 2];
 
 const GAME_TEXT = {
   firstTurnTitle: "First Turn",
@@ -86,7 +87,7 @@ const ACHIEVEMENTS = [
 
 /*
   Food, Hunt, and Prayer modifiers apply ONCE to the action's final total.
-  The Food and Hunt values below are the strengthened versions we agreed on.
+  Food values, Hunt Threat, and event modifiers are balanced by era below.
 */
 const EVENT_DECKS = [
   [
@@ -94,7 +95,7 @@ const EVENT_DECKS = [
       title: "Mild Winter",
       description:
         "Cold weather slows gathering. Your final Food total is reduced by 2 this turn.",
-      threat: 4,
+      threat: 3,
       food: -2,
     },
     {
@@ -107,14 +108,14 @@ const EVENT_DECKS = [
     {
       title: "Cold Rain",
       description: "The rain soaks kindling and stores. Lose 2 Food.",
-      threat: 4,
+      threat: 3,
       foodLoss: 2,
     },
     {
       title: "Rocky Terrain",
       description:
         "The hunt moves through difficult ground. Your final Hunt total is reduced by 3 this turn.",
-      threat: 5,
+      threat: 4,
       hunt: -3,
     },
     {
@@ -132,7 +133,7 @@ const EVENT_DECKS = [
     {
       title: "Foraging Patch",
       description: "A sheltered patch of roots is found. Your final Food total gains +1 this turn.",
-      threat: 3,
+      threat: 2,
       food: 1,
     },
   ],
@@ -141,46 +142,46 @@ const EVENT_DECKS = [
       title: "Harsh Winter",
       description:
         "Gathering is slowed by bitter cold. Your final Food total is reduced by 3 this turn.",
-      threat: 8,
+      threat: 7,
       food: -3,
     },
     {
       title: "Predator Activity",
       description:
         "Hunters find signs of a dangerous rival. Your final Hunt total is reduced by 3 this turn.",
-      threat: 9,
+      threat: 8,
       hunt: -3,
     },
     {
       title: "Thin Forage",
       description:
         "The usual plants are sparse. Your final Food total is reduced by 2 this turn.",
-      threat: 8,
+      threat: 6,
       food: -2,
     },
     {
       title: "Spoiled Stores",
       description: "Part of the community's stored food is lost.",
-      threat: 7,
+      threat: 5,
       foodLoss: 5,
     },
     {
       title: "Restless Nights",
       description:
         "Anxious vigils disrupt the camp. Kinship projects take 1 additional turn.",
-      threat: 9,
+      threat: 8,
       kinship: 1,
     },
     {
       title: "Flash Frost",
       description: "A sudden frost spoils gathered plants. Your final Food total is reduced by 2 this turn.",
-      threat: 8,
+      threat: 7,
       food: -2,
     },
     {
       title: "Torn Nets",
       description: "The best hunting gear needs mending. Your final Hunt total is reduced by 2 this turn.",
-      threat: 9,
+      threat: 8,
       hunt: -2,
     },
   ],
@@ -189,7 +190,7 @@ const EVENT_DECKS = [
       title: "Endless Winter",
       description:
         "Cold and hunger linger. Your final Food total is reduced by 3, and 4 stored Food is lost.",
-      threat: 13,
+      threat: 10,
       food: -3,
       foodLoss: 4,
     },
@@ -197,38 +198,38 @@ const EVENT_DECKS = [
       title: "Dwindling Herds",
       description:
         "Finding game requires a longer and riskier hunt. Your final Hunt total is reduced by 4 this turn.",
-      threat: 15,
+      threat: 12,
       hunt: -4,
     },
     {
       title: "Illness",
       description: "Caring for the sick delays community projects.",
-      threat: 12,
+      threat: 8,
       kinship: 1,
     },
     {
       title: "Great Flood",
       description: "Floodwater carries away stored supplies.",
-      threat: 14,
+      threat: 11,
       foodLoss: 8,
     },
     {
       title: "Sheltered Ritual",
       description:
         "A protected gathering strengthens resolve. Your final Prayer gain gets +1 this turn.",
-      threat: 11,
+      threat: 9,
       prayer: 1,
     },
     {
       title: "Wolf Pack",
       description: "Predators circle the hunting grounds. Your final Hunt total is reduced by 2 this turn.",
-      threat: 15,
+      threat: 12,
       hunt: -2,
     },
     {
       title: "Mudslide",
       description: "A slope gives way and buries part of the stores. Lose 5 Food.",
-      threat: 13,
+      threat: 10,
       foodLoss: 5,
     },
   ],
@@ -237,14 +238,14 @@ const EVENT_DECKS = [
       title: "Deep Freeze",
       description:
         "The land becomes difficult to work. Your final Food total is reduced by 4 this turn.",
-      threat: 15,
+      threat: 12,
       food: -4,
     },
     {
       title: "Famine",
       description:
         "Even successful gathering brings back little. Your final Food total is reduced by 2 and 12 stored Food is lost.",
-      threat: 17,
+      threat: 15,
       food: -2,
       foodLoss: 12,
     },
@@ -252,32 +253,32 @@ const EVENT_DECKS = [
       title: "Predator Surge",
       description:
         "The hunt is shadowed by dangerous predators. Your final Hunt total is reduced by 5 this turn.",
-      threat: 16,
+      threat: 14,
       hunt: -5,
     },
     {
       title: "Widespread Illness",
       description:
         "Several projects slow while the community recovers.",
-      threat: 15,
+      threat: 12,
       kinship: 2,
     },
     {
       title: "Contested Ground",
       description: "Other groups force a long detour. Your final Hunt total is reduced by 3 this turn.",
-      threat: 16,
+      threat: 14,
       hunt: -3,
     },
     {
       title: "Ashfall",
       description: "Ash settles over the valley and smothers edible growth. Your final Food total is reduced by 3 this turn.",
-      threat: 15,
+      threat: 13,
       food: -3,
     },
     {
       title: "Fractured Trail",
       description: "Travel between camps becomes slow and uncertain. Kinship projects take 1 additional turn.",
-      threat: 17,
+      threat: 15,
       kinship: 1,
     },
   ],
@@ -293,21 +294,21 @@ const EVENT_DECKS = [
     {
       title: "Great Famine",
       description: "Food stores are devastated.",
-      threat: 19,
+      threat: 20,
       foodLoss: 50,
     },
     {
       title: "Vanishing Herds",
       description:
         "The last familiar hunting grounds have emptied. Your final Hunt total is reduced by 7 this turn.",
-      threat: 18,
+      threat: 19,
       hunt: -7,
     },
     {
       title: "Plague",
       description:
         "Illness and scarcity strike at once. Your final Food total is reduced by 2 and Kinship projects take longer.",
-      threat: 18,
+      threat: 17,
       food: -2,
       kinship: 2,
     },
@@ -315,7 +316,7 @@ const EVENT_DECKS = [
       title: "Windfall Cache",
       description:
         "An old cache is uncovered before the storms. Your final Food total gains +2 this turn.",
-      threat: 17,
+      threat: 15,
       food: 2,
     },
     {
@@ -1548,7 +1549,7 @@ function bonusFor(die, side) {
 function availableUpgradeChoices() {
   const choices = [];
 
-  const foodFaces = [1, 1, 2, 2, 2, 3];
+  const foodFaces = FOOD_FACES;
 
   foodFaces.forEach((baseValue, index) => {
     const side = index + 1;
@@ -1668,7 +1669,7 @@ function resolveTurn() {
 
   // FOOD: event modifier applies once to the completed Food total.
   for (let i = 0; i < state.allocations.F; i += 1) {
-    const roll = rollDie([1, 1, 2, 2, 2, 3]);
+    const roll = rollDie(FOOD_FACES);
     const value = roll.value + bonusFor("F", roll.side);
 
     foodGained += value;
@@ -2059,7 +2060,7 @@ function dieGridHTML({ selectable = false, choices = [] } = {}) {
     choices.find((choice) => choice.die === die && choice.side === side);
   const face = (die, side, content, extraClass = "") => {
     const choice = choiceFor(die, side);
-    const base = die === "F" ? [1, 1, 2, 2, 2, 3][side - 1] : die === "H" ? side : die === "W" && side > 2 ? 1 : "Sacrifice";
+    const base = die === "F" ? FOOD_FACES[side - 1] : die === "H" ? side : die === "W" && side > 2 ? 1 : "Sacrifice";
     const detail = choice
       ? `${choice.label}. Original: ${base}${die === "F" ? " Food" : die === "W" && side > 2 ? " Prayer" : ""}. Upgrade history: +${bonusFor(die, side)}. ${choice.description} Cost: ${innovationCost(choice)} Innovation.`
       : `${die}${side}. This face cannot be upgraded further.`;
@@ -2069,7 +2070,7 @@ function dieGridHTML({ selectable = false, choices = [] } = {}) {
     const tag = selectable && choice ? "button" : "div";
     return `<${tag}${attrs}><small>${die}${side}</small><strong>${content}</strong><span class="face-detail">${escapeHTML(detail)}</span></${tag}>`;
   };
-  const foodFaces = [1, 1, 2, 2, 2, 3]
+  const foodFaces = FOOD_FACES
     .map(
       (value, index) => face("F", index + 1, `${value + currentUpgrade("F", index + 1)} Food`)
     )
