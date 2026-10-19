@@ -5,13 +5,20 @@
   Player-facing wording is in GAME_TEXT, ACTIONS, EVENT_DECKS, and rulesHTML().
 */
 
-const SAVE_KEY = "kinship-playtest-save-v5";
+const SAVE_KEY = "kinship-playtest-save-v6";
 const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
 const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
 const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
 const MAX_PRAYER = 11;
 const PROTECTION_COSTS = [1, 2, 3, 4, 5];
 const FOOD_FACES = [1, 1, 1, 2, 2, 2];
+const THREAT_RANGES = [
+  [2, 6],
+  [5, 8],
+  [8, 12],
+  [12, 15],
+  [15, 20],
+];
 
 const GAME_TEXT = {
   firstTurnTitle: "First Turn",
@@ -564,7 +571,13 @@ function currentEvent() {
     event,
     { ...event, ...CLASSIC_EVENT_TEXT[era][index] },
   ]);
-  return deck[Math.floor(Math.random() * deck.length)];
+  const [minimumThreat, maximumThreat] = THREAT_RANGES[era];
+  const threat =
+    minimumThreat +
+    Math.floor(Math.random() * (maximumThreat - minimumThreat + 1));
+
+  // Threat is intentionally independent from the event card and its modifier.
+  return { ...deck[Math.floor(Math.random() * deck.length)], threat };
 }
 
 function huntTargetForThreat(threat) {
