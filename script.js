@@ -2472,12 +2472,11 @@ function showSacrificeChoice(isDevout, research) {
 function rulesHTML() {
   return `
     <div class="rules-copy">
-      <h3>Your charge</h3>
+      <h3>Gameplay Overview </h3>
       <p>
-        You lead what remains of a civilization: five people facing extinction
+        After a series of devestating events, a once thriving civilization has dwindled down to just five people on the brink of extinction. As their fearless leader, you must guide them to survive
         across five eras. Feed the community, rebuild it through Kinship,
-        improve its tools, and secure one Sacred Legacy in each era before
-        surviving to Turn 100.
+        advance your technology, and worship the gods to preserve your Sacred Legacy. Above all else, do what it takes to survive.
       </p>
       <div class="rules-example-grid">
         <article class="rules-example"><span>🌾</span><strong>Feed</strong><small>Food keeps people alive.</small></article>
@@ -2489,14 +2488,14 @@ function rulesHTML() {
       <h3>Food and spoilage</h3>
       <p>
         At the end of every turn, each person eats 1 Food. If the community
-        cannot feed everyone, 1 person is lost. At the beginning of a turn,
-        Food above 20 spoils: lose 50% of the amount above 20, rounded down.
-        For example, 28 Food loses 4 Food.
+        cannot feed everyone, 1 person is lost.
+        At the beginning of a turn, Food above 20 spoils: lose 50% of the amount above 20, rounded down.
+        For example, 29 Food loses 4 Food.
       </p>
 
       <h3>Hunting and Threat</h3>
       <p>
-        A Hunt succeeds only when its numeric total meets or exceeds current
+        A Hunt succeeds only when the sum of all hunt rolls meets or exceeds the current
         Threat. If a Hunt fails and one or more Skulls were rolled, 1 person
         is lost. If it fails with no Skulls, no Food is gained but no hunter
         is lost.
@@ -2526,9 +2525,9 @@ function rulesHTML() {
 
       <h3>Technology</h3>
       <p>
-        Technology rolls give Stick, Rope, or Rock. One of each completes a
+        Technology rolls produce Sticks, Ropes, or Rocks. One of each completes a
         set and saves 1 Innovation. Saved Innovation can be spent from the
-        Craft panel after an event is revealed, before resolving allocation on
+        Craft panel before resolving allocation on
         any later turn. A face's first upgrade costs 1 saved
         Innovation, and each next improvement costs one more than the last.
         Each physical eligible side can be upgraded five times, except W1/W2,
@@ -2544,9 +2543,10 @@ function rulesHTML() {
 
       <h3>Worship and Sacrifice</h3>
       <p>
-        W1 and W2 are Sacrifice faces. Each may upgrade once into Devout
-        Sacrifice. W3–W6 each produce 1 Prayer and can be individually
-        upgraded five times. Only one Sacrifice resolves each turn: if a
+        You've seen what divine cruelty can do to your civilization, after all that's why you're in this mess to begin with. You won't make the same mistake again.
+        2 faces on the worship die are Sacrifice faces. Each may upgrade once into Devout
+        Sacrifice. The other 4 faces each produce 1 Prayer and can be individually
+        upgraded. Only one Sacrifice resolves each turn: if a
         Devout Sacrifice was rolled, it takes priority. Any other Sacrifice
         rolls give 0 Prayer and cause no additional loss.
       </p>
@@ -2554,8 +2554,8 @@ function rulesHTML() {
       <p>
         Ordinary Sacrifice offers +5 Food, 1 free material, or finishing one
         Kinship project. A free material immediately forms Innovation if it
-        completes a set. Devout Sacrifice offers +10 Food, one free Innovation
-        when an eligible face remains, or finishing all active
+        completes a set. Devout Sacrifice offers +10 Food, one free Innovation,
+        or finishing all active
         Kinship projects.
       </p>
       <h3>Events and modifiers</h3>
@@ -2567,7 +2567,8 @@ function rulesHTML() {
       </p>
       <h3>Prayer and Sacred Legacy</h3>
       <p>
-        Prayer is capped at ${MAX_PRAYER}. Spend 1, 2, 3, 4, or 5 Prayer before allocation to ignore an event's effects in Eras I–V. Protection never removes Threat. Legacy costs are 3, 5, 7, 9, and 11 Prayer for Eras I–V, and each must be claimed by Turns 7, 14, 30, 60, and 99 respectively.
+        Prayer is capped at ${MAX_PRAYER}. Spend Prayer tokens equal to the current Era before allocation to ignore an event's effects in Eras I–V. [Protection costs 1 prayer in Era I, 2 in Era II, etc.] Protection never removes Threat. YOU MUST CLAIM THE SACRED LEGACY IN EACH ERA, OR YOUR CIVILIZATION WILL PERISH.
+        Legacy costs are 3, 5, 7, 9, and 11 Prayer for Eras I–V, and each must be claimed by Turns 7, 14, 30, 60, and 99 respectively.
       </p>
       <div class="rules-walkthrough">
         <strong>Example Prayer choice</strong>
@@ -2592,11 +2593,11 @@ function showTutorial(onComplete) {
     },
     {
       title: "Read the dice",
-      text: "Each action card tells you what its die can do. Open Rules & dice at any time to inspect the current faces, including changes from upgrades.",
+      text: "Explore what each die can do. Open Rules & dice at any time to inspect the current faces, including changes from upgrades.",
     },
     {
       title: "Preserve each era",
-      text: "The game has five eras. Build Prayer, then claim that era's Prestige chip before its deadline—the claim button always states the final turn.",
+      text: "The game has five eras. Earn Prayer, then claim that era's Prestige chip before its deadline—the claim button always states the final turn in which it can be claimed.",
     },
     {
       title: "Turn materials into upgrades",
