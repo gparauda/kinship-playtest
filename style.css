@@ -1221,6 +1221,31 @@ body {
   padding-bottom: 14px;
 }
 
+.leaderboard-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.leaderboard-tab {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fbfaf6;
+  color: var(--muted);
+  cursor: pointer;
+  font: 700 9px "DM Mono", monospace;
+  padding: 6px 8px;
+}
+
+.leaderboard-tab:hover,
+.leaderboard-tab:focus-visible,
+.leaderboard-tab.is-active {
+  border-color: var(--moss);
+  background: var(--pine);
+  color: #fff;
+}
+
 .leaderboard-list {
   display: grid;
   gap: 7px;

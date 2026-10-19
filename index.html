@@ -249,9 +249,17 @@
   <div class="panel-title-row">
     <div>
       <p class="eyebrow">Community records</p>
-      <h2>Longest surviving</h2>
+      <h2 id="leaderboard-title">Longest surviving</h2>
     </div>
     <span class="small-muted">Top 10</span>
+  </div>
+
+  <div class="leaderboard-tabs" role="group" aria-label="Leaderboard category">
+    <button class="leaderboard-tab is-active" type="button" data-leaderboard-metric="survival" aria-pressed="true">Survival</button>
+    <button class="leaderboard-tab" type="button" data-leaderboard-metric="successful_hunts" aria-pressed="false">Hunts</button>
+    <button class="leaderboard-tab" type="button" data-leaderboard-metric="hunt_deaths" aria-pressed="false">Hunt deaths</button>
+    <button class="leaderboard-tab" type="button" data-leaderboard-metric="legacy_chips" aria-pressed="false">Legacy</button>
+    <button class="leaderboard-tab" type="button" data-leaderboard-metric="peak_innovation" aria-pressed="false">Innovation</button>
   </div>
 
   <ol id="leaderboard-list" class="leaderboard-list">
@@ -293,6 +301,6 @@
     </dialog>
 
     <script src="supabase-config.js"></script>
-    <script src="script.js?v=20261018-6"></script>
+    <script src="script.js?v=20261019-1"></script>
   </body>
 </html>

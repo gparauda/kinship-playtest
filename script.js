@@ -5,12 +5,12 @@
   Player-facing wording is in GAME_TEXT, ACTIONS, EVENT_DECKS, and rulesHTML().
 */
 
-const SAVE_KEY = "kinship-playtest-save-v6";
+const SAVE_KEY = "kinship-playtest-save-v7";
 const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
 const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
 const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
 const MAX_PRAYER = 11;
-const PROTECTION_COSTS = [1, 2, 3, 4, 5];
+const PROTECTION_COST = 2;
 const FOOD_FACES = [1, 1, 1, 2, 2, 2];
 const THREAT_RANGES = [
   [2, 6],
@@ -19,6 +19,14 @@ const THREAT_RANGES = [
   [12, 15],
   [15, 20],
 ];
+const LEADERBOARD_METRICS = {
+  survival: { title: "Longest surviving", field: "turns_survived" },
+  successful_hunts: { title: "Most successful hunts", field: "successful_hunts" },
+  hunt_deaths: { title: "Most hunt deaths", field: "hunt_deaths" },
+  legacy_chips: { title: "Most Sacred Legacies", field: "legacy_chips" },
+  peak_innovation: { title: "Highest Innovation", field: "peak_innovation" },
+};
+let activeLeaderboardMetric = "survival";
 
 const GAME_TEXT = {
   firstTurnTitle: "First Turn",
@@ -744,13 +752,13 @@ async function finishRemoteSession(reason) {
     gameExperience: state.gameExperience,
   });
 
-  if (data?.leaderboard) {
-    renderLeaderboard(data.leaderboard);
-  }
+  if (data?.saved) await loadLeaderboard();
 }
 
 async function loadLeaderboard() {
-  const data = await callKinshipSync("get_leaderboard");
+  const data = await callKinshipSync("get_leaderboard", {
+    metric: activeLeaderboardMetric,
+  });
 
   if (data?.leaderboard) {
     renderLeaderboard(data.leaderboard);
@@ -774,11 +782,40 @@ function renderLeaderboard(entries = []) {
         <li>
           <span class="leaderboard-rank">${index + 1}</span>
           <span class="leaderboard-name">${escapeHTML(entry.player_name)}</span>
-          <strong>Turn ${entry.best_turn}</strong>
+          <strong>${leaderboardValue(entry, activeLeaderboardMetric)}</strong>
         </li>
       `
     )
     .join("");
+}
+
+function leaderboardValue(entry, metric) {
+  if (metric === "survival") {
+    return `Turn ${entry.turns_survived} · ${entry.legacy_chips} Legacy · ${entry.final_people} people`;
+  }
+
+  const labels = {
+    successful_hunts: "successful hunts",
+    hunt_deaths: "hunt deaths",
+    legacy_chips: "Legacies",
+    peak_innovation: "Innovation",
+  };
+  return `${entry[LEADERBOARD_METRICS[metric].field]} ${labels[metric]}`;
+}
+
+function setLeaderboardMetric(metric) {
+  if (!LEADERBOARD_METRICS[metric]) return;
+
+  activeLeaderboardMetric = metric;
+  $("leaderboard-title").textContent = LEADERBOARD_METRICS[metric].title;
+  document.querySelectorAll("[data-leaderboard-metric]").forEach((button) => {
+    const active = button.dataset.leaderboardMetric === metric;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  $("leaderboard-list").innerHTML =
+    `<li class="leaderboard-empty">Loading records…</li>`;
+  loadLeaderboard();
 }
 
 function escapeHTML(value) {
@@ -935,6 +972,11 @@ $("auto-prestige").addEventListener("change", () => {
 
 $("dice-btn").addEventListener("click", () => showRulesAndDice("dice"));
 $("achievements-btn").addEventListener("click", showAchievements);
+document.querySelectorAll("[data-leaderboard-metric]").forEach((button) => {
+  button.addEventListener("click", () =>
+    setLeaderboardMetric(button.dataset.leaderboardMetric)
+  );
+});
 
 function openSavedInnovationMenu() {
   if (!state || state.gameOver) return;
@@ -1114,7 +1156,7 @@ function canStartKinshipProject() {
 }
 
 function protectionCost() {
-  return PROTECTION_COSTS[currentEraIndex()];
+  return PROTECTION_COST;
 }
 
 function ensureEraTurnHint() {
@@ -2634,7 +2676,7 @@ function rulesHTML() {
       </p>
       <h3>Prayer and Sacred Legacy</h3>
       <p>
-        Prayer is capped at ${MAX_PRAYER}. Spend Prayer tokens equal to the current Era before allocation to ignore an event's effects in Eras I–V. [Protection costs 1 prayer in Era I, 2 in Era II, etc.] Protection never removes Threat. YOU MUST CLAIM THE SACRED LEGACY IN EACH ERA, OR YOUR CIVILIZATION WILL PERISH.
+        Prayer is capped at ${MAX_PRAYER}. Spend 2 Prayer before allocation to ignore an event's effects. Protection never removes Threat. YOU MUST CLAIM THE SACRED LEGACY IN EACH ERA, OR YOUR CIVILIZATION WILL PERISH.
         Legacy costs are 3, 5, 7, 9, and 11 Prayer for Eras I–V, and each must be claimed by Turns 7, 14, 30, 60, and 99 respectively.
       </p>
       <div class="rules-walkthrough">

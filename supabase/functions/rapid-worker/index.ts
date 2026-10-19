@@ -24,6 +24,16 @@ const achievementIds = new Set([
   "face-five-upgrades",
   "lost-turn-two",
 ]);
+const leaderboardSorts = {
+  survival: {
+    column: "turns_survived",
+    tieBreakers: ["victory", "legacy_chips", "final_people", "final_food"],
+  },
+  successful_hunts: { column: "successful_hunts", tieBreakers: ["turns_survived"] },
+  hunt_deaths: { column: "hunt_deaths", tieBreakers: ["turns_survived"] },
+  legacy_chips: { column: "legacy_chips", tieBreakers: ["turns_survived"] },
+  peak_innovation: { column: "peak_innovation", tieBreakers: ["turns_survived"] },
+} as const;
 
 function reply(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -137,7 +147,7 @@ Deno.serve(async (request) => {
           game_experience: gameExperience,
           first_game: (priorSessions ?? 0) === 0,
           participant_id: participantId,
-          game_version: "2026-10-18-balance-v3",
+          game_version: "2026-10-19-balance-v4",
         })
         .select("id")
         .single();
@@ -251,15 +261,7 @@ Deno.serve(async (request) => {
 
       if (leaderboardError) throw leaderboardError;
 
-      const { data: leaderboard, error: leaderboardReadError } = await supabase
-        .from("kinship_leaderboard")
-        .select("player_name, best_turn")
-        .order("best_turn", { ascending: false })
-        .limit(10);
-
-      if (leaderboardReadError) throw leaderboardReadError;
-
-      return reply({ saved: true, leaderboard });
+      return reply({ saved: true });
     }
 
     if (action === "sync_achievements") {
@@ -329,15 +331,27 @@ Deno.serve(async (request) => {
     }
 
     if (action === "get_leaderboard") {
-      const { data, error } = await supabase
-        .from("kinship_leaderboard")
-        .select("player_name, best_turn")
-        .order("best_turn", { ascending: false })
-        .limit(10);
+      const requestedMetric = String(body.metric ?? "survival");
+      const sort = leaderboardSorts[
+        requestedMetric as keyof typeof leaderboardSorts
+      ] ?? leaderboardSorts.survival;
+
+      let query = supabase
+        .from("kinship_leaderboard_metrics")
+        .select(
+          "player_name, turns_survived, victory, legacy_chips, final_people, final_food, successful_hunts, hunt_deaths, peak_innovation"
+        )
+        .order(sort.column, { ascending: false });
+
+      sort.tieBreakers.forEach((column) => {
+        query = query.order(column, { ascending: false });
+      });
+
+      const { data, error } = await query.limit(10);
 
       if (error) throw error;
 
-      return reply({ leaderboard: data });
+      return reply({ leaderboard: data, metric: requestedMetric });
     }
 
     return reply({ error: "Unknown action." }, 400);
