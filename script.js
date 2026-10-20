@@ -1788,7 +1788,7 @@ function showArchiveMaterialChoice(mystery) {
       <p class="eyebrow">Forgotten Archive</p>
       <h2>Choose a recovered material</h2>
       <p>The archive yields a single useful component. Food allocation is unavailable for the next 3 turns while its passages are studied.</p>
-      <div class="modal-actions">${materials.map((material) => choiceButton(`archive-material-${material}`, material, `Add 1 ${material}.`)).join("")}</div>
+      <div class="modal-actions">${materials.map((material) => choiceButton(`archive-material-${material}`, material, `${state.materials[material]} held · Add 1 ${material}.`)).join("")}</div>
     </div>
   `;
   if (!$("result-modal").open) $("result-modal").showModal();
