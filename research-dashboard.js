@@ -66,10 +66,12 @@ function renderCharts(rows) {
   const groupLabels = groups.map(([label]) => label);
   const means = groups.map(([, values]) => values.reduce((sum, row) => sum + Number(row.turns_survived || 0), 0) / values.length);
   meanTurnsChart?.destroy();
-  meanTurnsChart = new Chart($('mean-turns-chart'), { type: 'bar', data: { labels: groupLabels, datasets: [{ label: 'Mean turns survived', data: means, backgroundColor: '#80683d' }] }, options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } } });
+  meanTurnsChart = new Chart($('mean-turns-chart'), { type: 'bar', data: { labels: groupLabels, datasets: [{ label: 'Mean turns survived', data: means, backgroundColor: '#80683d' }] }, options: { responsive: true, scales: { y: { beginAtZero: true, max: 75 } } } });
 
   const bins = Array.from({ length: 10 }, (_, i) => ({ label: `${i * 10 + 1}–${(i + 1) * 10}`, count: 0 }));
-  rows.forEach((row) => bins[Math.min(9, Math.floor((Number(row.turns_survived || 1) - 1) / 10))].count++);
+  bins.length = 8;
+  bins[7].label = "71–75";
+  rows.forEach((row) => bins[Math.min(7, Math.floor((Number(row.turns_survived || 1) - 1) / 10))].count++);
   distributionChart?.destroy();
   distributionChart = new Chart($('distribution-chart'), { type: 'bar', data: { labels: bins.map((bin) => bin.label), datasets: [{ label: 'Sessions', data: bins.map((bin) => bin.count), backgroundColor: '#53765b' }] }, options: { responsive: true } });
 }

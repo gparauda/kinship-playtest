@@ -5,7 +5,7 @@
   Player-facing wording is in GAME_TEXT, ACTIONS, EVENT_DECKS, and rulesHTML().
 */
 
-const SAVE_KEY = "kinship-playtest-save-v8";
+const SAVE_KEY = "kinship-playtest-save-v9";
 const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
 const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
 const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
@@ -32,7 +32,7 @@ const CHOICE_EVENT_SCHEDULES = [
   { id: "aggressive_missionary", era: 1, minimumTurn: 9, maximumTurn: 13 },
   { id: "forgotten_archive", era: 2, minimumTurn: 17, maximumTurn: 27 },
   { id: "season_of_plenty", era: 3, minimumTurn: 35, maximumTurn: 50 },
-  { id: "distant_hearths", era: 4, minimumTurn: 65, maximumTurn: 94 },
+  { id: "distant_hearths", era: 4, minimumTurn: 61, maximumTurn: 70 },
 ];
 
 const GAME_TEXT = {
@@ -100,13 +100,13 @@ const ACHIEVEMENTS = [
   { id: "twenty-five-upgrades", name: "The Future Is Now", shape: "diamond", description: "Make 25 upgrades in one game." },
   { id: "turn-25", name: "Back from the Brink", shape: "sun", description: "Reach Turn 25." },
   { id: "turn-50", name: "Getting Your Footing", shape: "sun", description: "Reach Turn 50." },
-  { id: "turn-100", name: "What Now?", shape: "sun", description: "Reach Turn 100." },
+  { id: "turn-75", name: "What Now?", shape: "sun", description: "Reach Turn 75." },
   { id: "first-era-claim", name: "Doorstep", shape: "gate", description: "Claim an era's Prestige chip on its first turn." },
   { id: "five-skulls", name: "Land of the Dead", shape: "star", rare: true },
   { id: "face-five-upgrades", name: "The Gambler", shape: "anvil", rare: true },
   { id: "lost-turn-three", name: "Empty Chair", shape: "eclipse", description: "Lose the community on Turn 3.", rare: true, ultraRare: true },
   { id: "last-convert", name: "The Last Convert", shape: "eclipse", description: "Lose your final person to the Aggressive Missionary.", ultraRare: true },
-  { id: "archive-rediscovered", name: "The Archive Remembers", shape: "gate", description: "Survive to rediscover the Forgotten Archive on Turn 75.", rare: true },
+  { id: "archive-rediscovered", name: "The Archive Remembers", shape: "gate", description: "Survive to rediscover the Forgotten Archive on Turn 50.", rare: true },
 ];
 
 /*
@@ -208,6 +208,13 @@ const EVENT_DECKS = [
       threat: 8,
       hunt: -2,
     },
+    {
+      title: "Blighted Harvest",
+      description: "A blight settles into the gathering grounds. One random Food die face permanently loses 1 value.",
+      threat: 7,
+      blightedHarvest: true,
+      unprotectable: true,
+    },
   ],
   [
     {
@@ -255,6 +262,13 @@ const EVENT_DECKS = [
       description: "A hillside storehouse gives way in the night. Lose 5 Food.",
       threat: 10,
       foodLoss: 5,
+    },
+    {
+      title: "Blighted Harvest",
+      description: "The blight returns to the valley. One random Food die face permanently loses 1 value.",
+      threat: 10,
+      blightedHarvest: true,
+      unprotectable: true,
     },
   ],
   [
@@ -308,52 +322,52 @@ const EVENT_DECKS = [
   ],
   [
     {
-      title: "Last Green Things",
-      description:
-        "The last edible growth fades from the valley. Your final Food total is reduced by 4 and 20 stored Food is lost.",
-      threat: 18,
-      food: -4,
-      foodLoss: 20,
+      title: "Old Hunting Grounds",
+      description: "Veteran scouts lead the hunters back to an ancestral trail. Your final Hunt total gains +4 this turn.",
+      threat: 16,
+      hunt: 4,
     },
     {
-      title: "The Long Hunger",
-      description: "Nothing remains in the old stores.",
-      threat: 20,
-      foodLoss: 50,
-    },
-    {
-      title: "Herds Beyond the Horizon",
-      description:
-        "The familiar herds have moved beyond the horizon. Your final Hunt total is reduced by 7 this turn.",
-      threat: 19,
-      hunt: -7,
-    },
-    {
-      title: "Camp Fever",
-      description:
-        "Illness spreads while food runs thin. Your final Food total is reduced by 2 and Kinship projects take longer.",
-      threat: 17,
-      food: -2,
-      kinship: 2,
-    },
-    {
-      title: "Hidden Granary",
-      description:
-        "A sealed granary is uncovered beneath an abandoned hearth. Your final Food total gains +2 this turn.",
+      title: "Ancestral Trail",
+      description: "An old route between hearths is cleared. Kinship projects begun this turn take 1 fewer turn.",
       threat: 15,
-      food: 2,
+      kinship: -1,
     },
     {
-      title: "Sunless Storm",
-      description: "A day without light halts most gathering. Your final Food total is reduced by 3 this turn.",
-      threat: 19,
+      title: "Night of a Thousand Fires",
+      description: "Fires answer one another across the valley. Your final Prayer gain gets +2 this turn.",
+      threat: 17,
+      prayer: 2,
+    },
+    {
+      title: "Veteran Scouts",
+      description: "The scouts know when to retreat. A failed Hunt this turn cannot lose a person to a Skull.",
+      threat: 18,
+      huntSafe: true,
+    },
+    {
+      title: "Salt Wind",
+      description: "A dry wind scours the gathered plants. Your final Food total is reduced by 3 this turn.",
+      threat: 17,
       food: -3,
     },
     {
-      title: "Night Raid",
-      description: "Desperate strangers find the hidden stores. Lose 25 Food.",
+      title: "Last Granary Beetles",
+      description: "The final stores draw a swarm of hungry beetles. Lose 5 Food.",
+      threat: 16,
+      foodLoss: 5,
+    },
+    {
+      title: "Clear Mountain Water",
+      description: "A clear spring offers relief from spoilage. Its blessing lasts through the next spoilage check, or three checks if strengthened with Prayer.",
+      threat: 15,
+      clearWater: true,
+    },
+    {
+      title: "Echoes of the Old World",
+      description: "An old pattern in the stones guides the makers. Assign Technology this turn to choose 1 extra material.",
       threat: 18,
-      foodLoss: 25,
+      technologyBonus: true,
     },
   ],
 ];
@@ -378,6 +392,7 @@ const CLASSIC_EVENT_TEXT = [
     { title: "Restless Nights", description: "Anxious vigils disrupt the camp. Kinship projects take 1 additional turn." },
     { title: "Flash Frost", description: "A sudden frost spoils gathered plants. Your final Food total is reduced by 2 this turn." },
     { title: "Torn Nets", description: "The best hunting gear needs mending. Your final Hunt total is reduced by 2 this turn." },
+    { title: "Blackened Shoots", description: "A blight settles into the gathering grounds. One random Food die face permanently loses 1 value." },
   ],
   [
     { title: "Endless Winter", description: "Cold and hunger linger. Your final Food total is reduced by 3, and 4 stored Food is lost." },
@@ -387,6 +402,7 @@ const CLASSIC_EVENT_TEXT = [
     { title: "Sheltered Ritual", description: "A protected gathering strengthens resolve. Your final Prayer gain gets +1 this turn." },
     { title: "Wolf Pack", description: "Predators circle the hunting grounds. Your final Hunt total is reduced by 2 this turn." },
     { title: "Mudslide", description: "A slope gives way and buries part of the stores. Lose 5 Food." },
+    { title: "Withered Fields", description: "The blight returns to the valley. One random Food die face permanently loses 1 value." },
   ],
   [
     { title: "Deep Freeze", description: "The land becomes difficult to work. Your final Food total is reduced by 4 this turn." },
@@ -398,13 +414,14 @@ const CLASSIC_EVENT_TEXT = [
     { title: "Fractured Trail", description: "Travel between camps becomes slow and uncertain. Kinship projects take 1 additional turn." },
   ],
   [
-    { title: "Bitter Winter", description: "A final hard winter tests everything built. Your final Food total is reduced by 4 and 20 stored Food is lost." },
-    { title: "Great Famine", description: "Food stores are devastated." },
-    { title: "Vanishing Herds", description: "The last familiar hunting grounds have emptied. Your final Hunt total is reduced by 7 this turn." },
-    { title: "Plague", description: "Illness and scarcity strike at once. Your final Food total is reduced by 2 and Kinship projects take longer." },
-    { title: "Windfall Cache", description: "An old cache is uncovered before the storms. Your final Food total gains +2 this turn." },
-    { title: "Blizzard", description: "Whiteout conditions halt most gathering. Your final Food total is reduced by 3 this turn." },
-    { title: "Raided Stores", description: "Desperate rivals find the hidden stores. Lose 25 Food." },
+    { title: "Remembered Trails", description: "Veteran scouts lead the hunters back to an ancestral trail. Your final Hunt total gains +4 this turn." },
+    { title: "Restored Footbridge", description: "An old route between hearths is cleared. Kinship projects begun this turn take 1 fewer turn." },
+    { title: "Beacon Fires", description: "Fires answer one another across the valley. Your final Prayer gain gets +2 this turn." },
+    { title: "Wise Retreat", description: "The scouts know when to retreat. A failed Hunt this turn cannot lose a person to a Skull." },
+    { title: "Dry Gale", description: "A dry wind scours the gathered plants. Your final Food total is reduced by 3 this turn." },
+    { title: "Grain Moths", description: "The final stores draw a swarm of hungry beetles. Lose 5 Food." },
+    { title: "Spring Beneath Stone", description: "A clear spring offers relief from spoilage. Its blessing lasts through the next spoilage check, or three checks if strengthened with Prayer." },
+    { title: "Stonework Lesson", description: "An old pattern in the stones guides the makers. Assign Technology this turn to choose 1 extra material." },
   ],
 ];
 
@@ -496,7 +513,7 @@ function evaluateAchievements({ huntSkulls = 0 } = {}) {
     ...(upgradeTotal >= 25 ? ["twenty-five-upgrades"] : []),
     ...(state.turn >= 25 ? ["turn-25"] : []),
     ...(state.turn >= 50 ? ["turn-50"] : []),
-    ...(state.turn >= 100 ? ["turn-100"] : []),
+    ...(state.turn >= 75 ? ["turn-75"] : []),
     ...(huntSkulls >= 5 ? ["five-skulls"] : []),
     ...(faceUpgradedFiveTimes ? ["face-five-upgrades"] : []),
   ]);
@@ -533,7 +550,7 @@ function showAchievements() {
   const earned = earnedAchievements();
   const complete = ACHIEVEMENTS.filter((achievement) => earned[achievement.id]).length;
   const upgradeIds = ["five-upgrades", "fifteen-upgrades", "twenty-five-upgrades"];
-  const turnIds = ["turn-25", "turn-50", "turn-100"];
+  const turnIds = ["turn-25", "turn-50", "turn-75"];
   const progressionIds = new Set([...upgradeIds, ...turnIds]);
   const commonAchievements = ACHIEVEMENTS.filter(
     (achievement) =>
@@ -578,7 +595,7 @@ function currentEraIndex(turn = state.turn) {
 }
 
 function eraEndTurn(era = currentEraIndex()) {
-  return [7, 14, 30, 60, 99][era];
+  return [7, 14, 30, 60, 75][era];
 }
 
 function turnsLeftInEra() {
@@ -650,10 +667,15 @@ function currentEvent() {
   }
 
   const era = currentEraIndex();
-  const deck = EVENT_DECKS[era].flatMap((event, index) => [
-    event,
-    { ...event, ...CLASSIC_EVENT_TEXT[era][index] },
-  ]);
+  const deck = EVENT_DECKS[era]
+    .flatMap((event, index) => [
+      event,
+      { ...event, ...CLASSIC_EVENT_TEXT[era][index] },
+    ])
+    .filter(
+      (event) =>
+        !event.blightedHarvest || !state.blightedHarvestEras.includes(era)
+    );
   const [minimumThreat, maximumThreat] = THREAT_RANGES[era];
   const threat =
     minimumThreat +
@@ -696,7 +718,7 @@ function eventEffectLabels(event) {
 
   if (event.kinship) {
     labels.push(
-      `Kinship +${event.kinship} turn${event.kinship === 1 ? "" : "s"}`
+      `Kinship ${event.kinship > 0 ? "+" : ""}${event.kinship} turn${Math.abs(event.kinship) === 1 ? "" : "s"}`
     );
   }
 
@@ -704,7 +726,45 @@ function eventEffectLabels(event) {
     labels.push(`Lose ${event.foodLoss} Food`);
   }
 
+  if (event.blightedHarvest) {
+    labels.push("Random Food face −1 permanently");
+  }
+
+  if (event.huntSafe) labels.push("Failed Hunt Skulls are safe");
+  if (event.clearWater) labels.push("Protect Food from spoilage");
+  if (event.technologyBonus) labels.push("Technology grants 1 chosen material");
+
   return labels;
+}
+
+function hasProtectableEventEffect(event) {
+  return Boolean(
+    event.food < 0 ||
+      event.hunt < 0 ||
+      event.kinship > 0 ||
+      event.foodLoss > 0
+  );
+}
+
+function applyBlightedHarvest(event) {
+  if (!event.blightedHarvest) return;
+
+  const era = currentEraIndex();
+  if (state.blightedHarvestEras.includes(era)) return;
+
+  const eligibleFaces = [1, 2, 3, 4, 5, 6].filter(
+    (side) => foodFaceValue(side) > 0
+  );
+  if (!eligibleFaces.length) return;
+
+  const side = eligibleFaces[Math.floor(Math.random() * eligibleFaces.length)];
+  const previousValue = foodFaceValue(side);
+  state.foodFacePenalty[side] += 1;
+  state.blightedHarvestEras.push(era);
+
+  const message = `Blighted Harvest weakened Food face ${side}: ${previousValue} → ${foodFaceValue(side)}.`;
+  addLog(message);
+  state.startTurnNotes.push(message);
 }
 
 /*
@@ -875,7 +935,7 @@ async function finishRemoteSession(reason) {
       reason === "Session ended early." || reason === "Tribe abandoned."
         ? "ended_early"
         : "completed",
-    finalTurn: Math.min(endingState.turn, 100),
+    finalTurn: Math.min(endingState.turn, 75),
     finalPeople: endingState.people,
     finalFood: endingState.food,
     finalPrayer: endingState.prayer,
@@ -989,7 +1049,10 @@ function createNewState() {
     investments: [],
     choiceEventTurns: scheduleChoiceEvents(),
     archiveMystery: null,
+    waterProtectionUntilTurn: 0,
     materials: { Stick: 0, Rope: 0, Rock: 0 },
+    foodFacePenalty: [0, 0, 0, 0, 0, 0, 0],
+    blightedHarvestEras: [],
 
     upgrades: {
       F: [0, 0, 0, 0, 0, 0, 0],
@@ -1069,6 +1132,13 @@ function restoreSavedGame() {
     state.investments = Array.isArray(state.investments) ? state.investments : [];
     state.choiceEventTurns = state.choiceEventTurns || scheduleChoiceEvents();
     state.archiveMystery = state.archiveMystery || null;
+    state.waterProtectionUntilTurn = Number(state.waterProtectionUntilTurn) || 0;
+    state.foodFacePenalty = Array.isArray(state.foodFacePenalty)
+      ? state.foodFacePenalty
+      : [0, 0, 0, 0, 0, 0, 0];
+    state.blightedHarvestEras = Array.isArray(state.blightedHarvestEras)
+      ? state.blightedHarvestEras
+      : [];
     state.startTurnChoiceResolutions = [];
 
     $("skip-protection").checked = Boolean(
@@ -1229,14 +1299,20 @@ function beginTurn() {
 
   // Food above 20 spoils: 50% of the amount above 20, rounded down.
   if (state.food > 20) {
-    const spoiledFood = Math.floor((state.food - 20) / 2);
-
-    if (spoiledFood > 0) {
-      state.food -= spoiledFood;
-
-      const message = `${spoiledFood} Food spoiled in storage.`;
+    if (state.waterProtectionUntilTurn >= state.turn) {
+      const message = "Clear Mountain Water kept the stored Food from spoiling.";
       addLog(message);
       state.startTurnNotes.push(message);
+    } else {
+      const spoiledFood = Math.floor((state.food - 20) / 2);
+
+      if (spoiledFood > 0) {
+        state.food -= spoiledFood;
+
+        const message = `${spoiledFood} Food spoiled in storage.`;
+        addLog(message);
+        state.startTurnNotes.push(message);
+      }
     }
   }
 
@@ -1284,7 +1360,7 @@ function beginTurn() {
 
   let archiveRediscovery = null;
   if (
-    state.turn === 75 &&
+    state.turn === 50 &&
     state.archiveMystery?.delayedReward &&
     !state.archiveMystery.revealed
   ) {
@@ -1302,6 +1378,7 @@ function beginTurn() {
   }
 
   state.event = currentEvent();
+  applyBlightedHarvest(state.event);
   tryAutoClaimLegacy();
   evaluateAchievements();
 
@@ -1414,15 +1491,15 @@ function render() {
   const event = state.event || currentEvent();
 
   $("era-label").textContent = ERA_NAMES[era];
-  $("turn-label").innerHTML = `Turn ${state.turn} <span>/ 100</span>`;
+  $("turn-label").innerHTML = `Turn ${state.turn} <span>/ 75</span>`;
 
   ensureEraTurnHint();
 
   $("progress-text").textContent = `${Math.round(
-    (state.turn / 100) * 100
+    (state.turn / 75) * 100
   )}%`;
 
-  $("progress-fill").style.width = `${Math.max(1, state.turn)}%`;
+  $("progress-fill").style.width = `${Math.min(100, Math.max(1, (state.turn / 75) * 100)}%`;
 
   $("event-title").textContent = event.title;
   $("event-description").textContent = event.description;
@@ -1762,7 +1839,7 @@ function archiveBreakthroughChoices() {
   const faces = [];
   FOOD_FACES.forEach((base, index) => {
     const side = index + 1;
-    if (bonusFor("F", side) < 6) faces.push({ die: "F", side, label: `Food side ${side}`, value: base + bonusFor("F", side) });
+    if (bonusFor("F", side) < 6) faces.push({ die: "F", side, label: `Food side ${side}`, value: foodFaceValue(side) });
   });
   [3, 4, 5, 6].forEach((side) => {
     if (bonusFor("H", side) < 6) faces.push({ die: "H", side, label: `Hunt side ${side}`, value: side + bonusFor("H", side) });
@@ -1802,7 +1879,7 @@ function archiveMysteryState(delayedReward = false) {
   return {
     foodLockedUntilTurn: state.turn + 2,
     delayedReward,
-    revealAtTurn: delayedReward ? 75 : null,
+    revealAtTurn: delayedReward ? 50 : null,
     revealed: false,
     choiceId: null,
   };
@@ -1853,7 +1930,7 @@ function showArchiveMaterialChoice(mystery) {
 function showArchiveRediscovery(prayerGained) {
   $("result-content").innerHTML = `
     <div class="result-inner">
-      <p class="eyebrow">Turn 75</p>
+      <p class="eyebrow">Turn 50</p>
       <h2>The Archive Was Found</h2>
       <p>What seemed lost beneath the earth has been rediscovered. Its final record strengthens the community's faith.</p>
       <div class="event-effects"><span>+${prayerGained} Prayer</span></div>
@@ -2058,9 +2135,50 @@ function showChoiceEvent() {
   });
 }
 
+function showClearMountainWater() {
+  const canStrengthen = state.prayer >= PROTECTION_COST;
+  $("result-content").innerHTML = `
+    <div class="result-inner">
+      <p class="eyebrow">Turn ${state.turn} event</p>
+      <h2>${state.event.title}</h2>
+      <p>${state.event.description}</p>
+      <div class="event-effects">${eventEffectLabels(state.event).map((effect) => `<span>${effect}</span>`).join("")}</div>
+      <p class="modal-note">The spring normally protects Food from the next spoilage check. Offer 2 Prayer to preserve its blessing for the next 3 checks instead.</p>
+      <div class="modal-actions">
+        <button id="water-one-turn" class="button button-primary">Keep the blessing for 1 turn</button>
+        <button id="water-three-turn" class="button button-secondary" ${canStrengthen ? "" : "disabled"}>Spend 2 Prayer for 3 turns</button>
+      </div>
+    </div>
+  `;
+  $("result-modal").showModal();
+
+  const acceptWater = (turns, prayerSpent = 0) => {
+    if (prayerSpent && state.prayer < prayerSpent) return;
+    state.prayer -= prayerSpent;
+    state.waterProtectionUntilTurn = Math.max(
+      state.waterProtectionUntilTurn,
+      state.turn + turns
+    );
+    addLog(`Clear Mountain Water will prevent spoilage for ${turns} turn${turns === 1 ? "" : "s"}.`);
+    state.turnPhase = "allocation";
+    saveGame();
+    $("result-modal").close();
+    render();
+  };
+
+  $("water-one-turn").addEventListener("click", () => acceptWater(1));
+  $("water-three-turn").addEventListener("click", () =>
+    acceptWater(3, PROTECTION_COST)
+  );
+}
+
 function showEventReveal() {
   if (state.event.choiceEventId) {
     showChoiceEvent();
+    return;
+  }
+  if (state.event.clearWater) {
+    showClearMountainWater();
     return;
   }
   const event = state.event;
@@ -2081,6 +2199,8 @@ function showEventReveal() {
 
   if (
     !event.firstTurn &&
+    !event.unprotectable &&
+    hasProtectableEventEffect(event) &&
     !state.preferences.skipProtection &&
     state.prayer >= protectionCost()
   ) {
@@ -2256,6 +2376,15 @@ function bonusFor(die, side) {
   );
 }
 
+function foodFaceValue(side) {
+  return Math.max(
+    0,
+    FOOD_FACES[side - 1] +
+      bonusFor("F", side) -
+      (state.foodFacePenalty?.[side] || 0)
+  );
+}
+
 function availableUpgradeChoices() {
   const choices = [];
 
@@ -2270,7 +2399,7 @@ function availableUpgradeChoices() {
         side,
         label: `Food side ${side}`,
         description: `Current result: ${
-          baseValue + bonusFor("F", side)
+          foodFaceValue(side)
         } Food. Upgrade by +1.`,
       });
     }
@@ -2380,7 +2509,7 @@ function resolveTurn() {
   // FOOD: event modifier applies once to the completed Food total.
   for (let i = 0; i < state.allocations.F; i += 1) {
     const roll = rollDie(FOOD_FACES);
-    const value = roll.value + bonusFor("F", roll.side);
+    const value = foodFaceValue(roll.side);
 
     foodGained += value;
     research.foodRolls.push(`F${roll.side}: ${roll.value}→${value}`);
@@ -2430,7 +2559,7 @@ function resolveTurn() {
           skulls === 1 ? "" : "s"
         }, versus Threat ${event.threat}. Success: +${huntRollTotal} Food.`
       );
-    } else if (skulls > 0) {
+    } else if (skulls > 0 && !event.huntSafe) {
       state.people -= 1;
 
       results.push(
@@ -2440,9 +2569,13 @@ function resolveTurn() {
       );
     } else {
       results.push(
-        `Hunt: ${huntTargetForThreat(event.threat)} — ${huntRollTotal} total, 0 Skulls, versus Threat ${
-          event.threat
-        }. Failed: no Food was gained, but no hunter was lost.`
+        `Hunt: ${huntTargetForThreat(event.threat)} — ${huntRollTotal} total, ${skulls} Skull${
+          skulls === 1 ? "" : "s"
+        }, versus Threat ${event.threat}. Failed: no Food was gained, but ${
+          event.huntSafe && skulls > 0
+            ? "the scouts brought everyone home"
+            : "no hunter was lost"
+        }.`
       );
     }
   }
@@ -2472,6 +2605,11 @@ function resolveTurn() {
 
   if (completedSets > 0) {
     results.push(`Technology: completed ${completedSets} set${completedSets === 1 ? "" : "s"} and saved ${completedSets} Innovation.`);
+  }
+
+  if (state.allocations.T > 0 && eventIsActive && event.technologyBonus) {
+    state.choiceQueue.push({ type: "eventMaterial", research });
+    results.push("Echoes of the Old World: choose 1 extra Technology material.");
   }
 
   // WORSHIP: only one sacrifice resolves. A Devout result always takes priority.
@@ -2663,6 +2801,15 @@ function processChoiceQueue() {
     showMaterialChoice(choice.research);
   }
 
+  if (choice.type === "eventMaterial") {
+    showMaterialChoice(choice.research, {
+      eyebrow: "Echoes of the Old World",
+      title: "Choose an extra material",
+      description: "The old pattern guides the makers to one additional component.",
+      logPrefix: "Echoes of the Old World",
+    });
+  }
+
   if (choice.type === "kinshipOne") {
     showOneKinshipChoice(choice.research);
   }
@@ -2709,7 +2856,7 @@ function showFinalLegacyChoice(era) {
       <h2>Claim Legacy or the session ends</h2>
 
       <p>
-        This was the final turn of Era ${era + 1}. To reach Turn 100,
+        This was the final turn of Era ${era + 1}. To reach Turn 75,
         the community must preserve one Sacred Legacy in every era.
       </p>
 
@@ -2746,18 +2893,17 @@ function showFinalLegacyChoice(era) {
 
 function advanceTurn() {
   evaluateAchievements();
-  state.turn += 1;
-
-  if (state.turn > 100) {
+  if (state.turn >= 75) {
     endGame(
       state.legacy.every(Boolean)
-        ? "Victory. Your community reached Turn 100 with one Sacred Legacy from every era."
-        : "Turn 100 has ended, but not every Era Legacy was preserved."
+        ? "Victory. Your community reached Turn 75 with one Sacred Legacy from every era."
+        : "Turn 75 has ended, but not every Era Legacy was preserved."
     );
 
     return;
   }
 
+  state.turn += 1;
   beginTurn();
 }
 
@@ -2782,7 +2928,7 @@ function dieGridHTML({ selectable = false, choices = [] } = {}) {
   };
   const foodFaces = FOOD_FACES
     .map(
-      (value, index) => face("F", index + 1, `${value + currentUpgrade("F", index + 1)} Food`)
+      (_, index) => face("F", index + 1, `${foodFaceValue(index + 1)} Food`)
     )
     .join("");
 
@@ -2933,13 +3079,22 @@ function showTechnologyUpgrade(research, isFree = false, onComplete = processCho
   }
 }
 
-function showMaterialChoice(research) {
+function showMaterialChoice(
+  research,
+  {
+    eyebrow = "Sacrifice reward",
+    title = "Choose one free material",
+    description = "",
+    logPrefix = "Sacrifice reward",
+  } = {}
+) {
   const materials = ["Stick", "Rope", "Rock"];
 
   $("result-content").innerHTML = `
     <div class="result-inner">
-      <p class="eyebrow">Sacrifice reward</p>
-      <h2>Choose one free material</h2>
+      <p class="eyebrow">${eyebrow}</p>
+      <h2>${title}</h2>
+      ${description ? `<p>${description}</p>` : ""}
 
       <div class="upgrade-choice-grid">
         ${materials
@@ -2967,7 +3122,7 @@ function showMaterialChoice(research) {
 
       state.materials[material] += 1;
       const completedSets = convertReadyInnovationSets(research);
-      const message = `Sacrifice reward: gained 1 ${material}.${
+      const message = `${logPrefix}: gained 1 ${material}.${
         completedSets
           ? ` Completed ${completedSets} Innovation set${completedSets === 1 ? "" : "s"}.`
           : ""
@@ -3290,7 +3445,7 @@ function rulesHTML() {
       <h3>Prayer and Sacred Legacy</h3>
       <p>
         Prayer is capped at ${MAX_PRAYER}. Spend 2 Prayer before allocation to ignore an event's effects. Protection never removes Threat. YOU MUST CLAIM THE SACRED LEGACY IN EACH ERA, OR YOUR CIVILIZATION WILL PERISH.
-        Legacy costs are 3, 5, 7, 9, and 11 Prayer for Eras I–V, and each must be claimed by Turns 7, 14, 30, 60, and 99 respectively.
+        Legacy costs are 3, 5, 7, 9, and 11 Prayer for Eras I–V, and each must be claimed by Turns 7, 14, 30, 60, and 75 respectively.
       </p>
       <div class="rules-walkthrough">
         <strong>Example Prayer choice</strong>

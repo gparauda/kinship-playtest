@@ -18,7 +18,7 @@ const achievementIds = new Set([
   "twenty-five-upgrades",
   "turn-25",
   "turn-50",
-  "turn-100",
+  "turn-75",
   "first-era-claim",
   "five-skulls",
   "face-five-upgrades",
@@ -149,7 +149,7 @@ Deno.serve(async (request) => {
           game_experience: gameExperience,
           first_game: (priorSessions ?? 0) === 0,
           participant_id: participantId,
-          game_version: "2026-10-20-choice-events-v1",
+          game_version: "2026-10-20-short-finale-v1",
         })
         .select("id")
         .single();
