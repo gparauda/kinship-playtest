@@ -841,29 +841,51 @@ async function syncChoiceEventResolution(choiceId, resolvedTurn, resolution) {
 async function finishRemoteSession(reason) {
   if (!state) return;
 
-  const sessionId = state.remoteSessionId || (await startRemoteSession());
-  const latestTurn = state.researchRows[state.researchRows.length - 1];
+  // Preserve the ending run before awaiting network work; the player may
+  // immediately choose Play again and replace the global state.
+  const endingState = state;
+  let sessionId = endingState.remoteSessionId;
 
-  if (latestTurn) {
-    await syncTurnToSupabase(latestTurn);
+  if (!sessionId) {
+    const started = await callKinshipSync("start_session", {
+      playerName: endingState.playerName,
+      participantId: endingState.participantId,
+      condition: endingState.condition,
+      openingNotes: endingState.openingNotes,
+      gender: endingState.gender,
+      ageBand: endingState.ageBand,
+      gameExperience: endingState.gameExperience,
+      firstGame: endingState.firstGame,
+    });
+    sessionId = started?.sessionId || null;
+    if (sessionId) endingState.remoteSessionId = sessionId;
+  }
+
+  const latestTurn = endingState.researchRows[endingState.researchRows.length - 1];
+
+  if (latestTurn && sessionId) {
+    await callKinshipSync("record_turn", { sessionId, turn: latestTurn });
   }
 
   if (!sessionId) return;
 
   const data = await callKinshipSync("finish_session", {
     sessionId,
-    status: reason === "Session ended early." ? "ended_early" : "completed",
-    finalTurn: Math.min(state.turn, 100),
-    finalPeople: state.people,
-    finalFood: state.food,
-    finalPrayer: state.prayer,
-    legacyChips: state.legacy.filter(Boolean).length,
+    status:
+      reason === "Session ended early." || reason === "Tribe abandoned."
+        ? "ended_early"
+        : "completed",
+    finalTurn: Math.min(endingState.turn, 100),
+    finalPeople: endingState.people,
+    finalFood: endingState.food,
+    finalPrayer: endingState.prayer,
+    legacyChips: endingState.legacy.filter(Boolean).length,
     victory: reason.startsWith("Victory"),
     endReason: reason,
-    playerName: state.playerName,
-    gender: state.gender,
-    ageBand: state.ageBand,
-    gameExperience: state.gameExperience,
+    playerName: endingState.playerName,
+    gender: endingState.gender,
+    ageBand: endingState.ageBand,
+    gameExperience: endingState.gameExperience,
   });
 
   if (data?.saved) await loadLeaderboard();
@@ -1141,8 +1163,13 @@ $("technology-panel").addEventListener("keydown", (event) => {
 });
 
 $("new-game-btn").addEventListener("click", () => {
-  clearSavedGame();
-  location.reload();
+  if (!state || state.gameOver) {
+    clearSavedGame();
+    location.reload();
+    return;
+  }
+
+  showAbandonSessionConfirm();
 });
 
 $("clear-log").addEventListener("click", () => {
@@ -2147,6 +2174,29 @@ function applyEventFoodLoss() {
     state.food -= actualLoss;
     addLog(`The event caused the loss of ${actualLoss} Food.`);
   }
+}
+
+function showAbandonSessionConfirm() {
+  $("result-content").innerHTML = `
+    <div class="result-inner">
+      <h2>Do you really want to abandon your tribe?</h2>
+      <p>Ending this session will record it as abandoned—a loss—and save the turn data collected so far.</p>
+      <div class="modal-actions">
+        <button id="abandon-cancel" class="button button-primary">Continue this session</button>
+        <button id="abandon-confirm" class="button button-ghost">Abandon tribe</button>
+      </div>
+    </div>
+  `;
+
+  if (!$("result-modal").open) $("result-modal").showModal();
+
+  $("abandon-cancel").addEventListener("click", () =>
+    $("result-modal").close()
+  );
+  $("abandon-confirm").addEventListener("click", () => {
+    $("result-modal").close();
+    endGame("Tribe abandoned.");
+  });
 }
 
 function showSimpleModal(title, description) {
