@@ -1,6 +1,11 @@
 -- Replace the successful-hunts ranking with each participant's total
 -- permanently earned achievements.  The count is intentionally participant-
 -- level, so it includes achievements earned across returning players' sessions.
+-- PostgreSQL preserves a view's column positions during CREATE OR REPLACE, so
+-- rename the existing seventh column before supplying its new definition.
+ALTER VIEW public.kinship_leaderboard_metrics
+  RENAME COLUMN successful_hunts TO total_achievements;
+
 CREATE OR REPLACE VIEW public.kinship_leaderboard_metrics AS
 SELECT
   s.id AS session_id,
