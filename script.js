@@ -11,6 +11,9 @@ const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
 const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
 const MAX_PRAYER = 11;
 const PROTECTION_COST = 2;
+// Display-only early-sample baseline for achievement rarity percentages.
+// Set to 0 once the study has enough independent participants.
+const ACHIEVEMENT_RARITY_BASELINE = 5;
 const FOOD_FACES = [1, 1, 1, 2, 2, 2];
 const THREAT_RANGES = [
   [2, 6],
@@ -591,10 +594,11 @@ function achievementHTML(achievement, earned, progress = "") {
 function achievementRateHTML(achievement) {
   if (!achievementStats || achievementStats.participantCount < 1) return "";
 
-  const total = achievementStats.participantCount;
+  const actualTotal = achievementStats.participantCount;
+  const total = actualTotal + ACHIEVEMENT_RARITY_BASELINE;
   const count = Math.max(0, Number(achievementStats.counts[achievement.id]) || 0);
   const percentage = Math.round((count / total) * 100);
-  return `<span class="achievement-rate" title="${count} of ${total} players" aria-label="${percentage}% of players have this achievement"><i aria-hidden="true"></i>${percentage}%</span>`;
+  return `<span class="achievement-rate" title="Early-sample rarity estimate: ${count} earned across ${actualTotal} players, with a ${ACHIEVEMENT_RARITY_BASELINE}-player baseline." aria-label="${percentage}% achievement rarity estimate"><i aria-hidden="true"></i>${percentage}%</span>`;
 }
 
 function progressionAchievementHTML(ids, earned) {
