@@ -104,7 +104,7 @@ const ACHIEVEMENTS = [
   { id: "first-era-claim", name: "Doorstep", shape: "gate", description: "Claim an era's Prestige chip on its first turn." },
   { id: "five-skulls", name: "Land of the Dead", shape: "star", rare: true },
   { id: "face-five-upgrades", name: "The Gambler", shape: "anvil", rare: true },
-  { id: "lost-turn-two", name: "Empty Chair", shape: "eclipse", rare: true, ultraRare: true },
+  { id: "lost-turn-three", name: "Empty Chair", shape: "eclipse", description: "Lose the community on Turn 3.", rare: true, ultraRare: true },
   { id: "last-convert", name: "The Last Convert", shape: "eclipse", description: "Lose your final person to the Aggressive Missionary.", ultraRare: true },
 ];
 
@@ -3182,8 +3182,8 @@ function showRulesAndDice(page = "dice", onClose = null) {
 }
 
 async function endGame(reason) {
-  if (state.turn === 2 && state.people <= 0) {
-    awardAchievements(["lost-turn-two"]);
+  if (state.turn === 3 && state.people <= 0) {
+    awardAchievements(["lost-turn-three"]);
   }
   evaluateAchievements();
   state.gameOver = true;

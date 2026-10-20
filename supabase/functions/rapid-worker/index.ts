@@ -22,7 +22,7 @@ const achievementIds = new Set([
   "first-era-claim",
   "five-skulls",
   "face-five-upgrades",
-  "lost-turn-two",
+  "lost-turn-three",
   "last-convert",
 ]);
 const leaderboardSorts = {
