@@ -1019,6 +1019,8 @@ function restoreSavedGame() {
     state.innovation = Number.isInteger(state.innovation)
       ? state.innovation
       : 0;
+    // Earlier Toolkit builds could briefly save an invalid negative Food total.
+    state.food = Math.max(0, Number(state.food) || 0);
     state.investments = Array.isArray(state.investments) ? state.investments : [];
     state.choiceEventTurns = state.choiceEventTurns || scheduleChoiceEvents();
     state.startTurnChoiceResolutions = [];
@@ -1772,6 +1774,11 @@ function showChoiceEvent() {
   if (dig) dig.addEventListener("click", async () => {
     const steps = [{ cost: 1, chance: 10 }, { cost: 2, chance: 25 }, { cost: 3, chance: 50 }, { cost: 4, chance: 75 }];
     const step = steps[(event.toolkitAttempts || []).length];
+
+    // Keep this check in the handler as well as on the button: a rapid click
+    // must never turn an unaffordable excavation into negative Food.
+    if (!step || state.food < step.cost) return;
+
     state.food -= step.cost;
     const found = Math.random() * 100 < step.chance;
     event.toolkitAttempts = [...(event.toolkitAttempts || []), { ...step, found }];
