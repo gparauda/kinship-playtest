@@ -1649,7 +1649,7 @@ function startChoiceAllocation(message) {
 
 function choiceButton(id, label, description, disabled = false) {
   return `
-    <button id="${id}" class="button button-secondary" ${disabled ? "disabled" : ""}>
+    <button id="${id}" class="button button-secondary choice-button" ${disabled ? "disabled" : ""}>
       <strong>${label}</strong><small>${description}</small>
     </button>
   `;
