@@ -1499,7 +1499,7 @@ function render() {
     (state.turn / 75) * 100
   )}%`;
 
-  $("progress-fill").style.width = `${Math.min(100, Math.max(1, (state.turn / 75) * 100)}%`;
+  $("progress-fill").style.width = `${Math.min(100, Math.max(1, (state.turn / 75) * 100))}%`;
 
   $("event-title").textContent = event.title;
   $("event-description").textContent = event.description;
