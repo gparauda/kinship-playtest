@@ -535,10 +535,18 @@ function showAchievements() {
   const upgradeIds = ["five-upgrades", "fifteen-upgrades", "twenty-five-upgrades"];
   const turnIds = ["turn-25", "turn-50", "turn-100"];
   const progressionIds = new Set([...upgradeIds, ...turnIds]);
-  const standardAchievements = ACHIEVEMENTS.filter(
-    (achievement) => !progressionIds.has(achievement.id) && !achievement.rare
+  const commonAchievements = ACHIEVEMENTS.filter(
+    (achievement) =>
+      !progressionIds.has(achievement.id) &&
+      !achievement.rare &&
+      !achievement.ultraRare
   );
-  const rareAchievements = ACHIEVEMENTS.filter((achievement) => achievement.rare);
+  const rareAchievements = ACHIEVEMENTS.filter(
+    (achievement) => achievement.rare && !achievement.ultraRare
+  );
+  const ultraRareAchievements = ACHIEVEMENTS.filter(
+    (achievement) => achievement.ultraRare
+  );
 
   $("result-content").innerHTML = `
     <div class="result-inner reference-modal achievements-modal">
@@ -546,10 +554,14 @@ function showAchievements() {
       <h2>Achievements <span class="achievement-total">${complete} / ${ACHIEVEMENTS.length}</span></h2>
       <p class="modal-note">Achievements remain unlocked across every game played in this browser.</p>
       <div class="achievement-list">
-        ${standardAchievements.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}
+        <p class="achievement-section-label">Common</p>
+        ${commonAchievements.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}
         ${progressionAchievementHTML(upgradeIds, earned)}
         ${progressionAchievementHTML(turnIds, earned)}
+        <p class="achievement-section-label">Rare</p>
         ${rareAchievements.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}
+        <p class="achievement-section-label">Ultra rare</p>
+        ${ultraRareAchievements.map((achievement) => achievementHTML(achievement, Boolean(earned[achievement.id]))).join("")}
       </div>
       <button id="achievements-close" class="button button-primary">Close</button>
     </div>`;
