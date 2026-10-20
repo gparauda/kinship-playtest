@@ -28,6 +28,7 @@ const LEADERBOARD_METRICS = {
 };
 let activeLeaderboardMetric = "survival";
 let achievementToastTimer = null;
+let achievementStats = null;
 const CHOICE_EVENT_SCHEDULES = [
   { id: "buried_toolkit", era: 0, minimumTurn: 3, maximumTurn: 6 },
   { id: "aggressive_missionary", era: 1, minimumTurn: 9, maximumTurn: 13 },
@@ -106,8 +107,9 @@ const ACHIEVEMENTS = [
   { id: "five-skulls", name: "Land of the Dead", shape: "star", description: "Roll 5 Skulls in a single Hunt.", rare: true },
   { id: "face-five-upgrades", name: "The Gambler", shape: "anvil", description: "Upgrade one die face 5 times.", rare: true },
   { id: "lost-turn-three", name: "Empty Chair", shape: "eclipse", description: "Lose the community on Turn 3.", rare: true, ultraRare: true },
-  { id: "last-convert", name: "The Last Convert", shape: "eclipse", description: "Lose your final person to the Aggressive Missionary.", ultraRare: true },
+  { id: "last-convert", name: "The Last Convert", shape: "eclipse", description: "Lose your final person to the Aggressive Missionary.", rare: true, ultraRare: true },
   { id: "archive-rediscovered", name: "The Archive Remembers", shape: "gate", description: "Survive to rediscover the Forgotten Archive on Turn 50.", rare: true },
+  { id: "all-achievements", name: "Civilization Eternal", shape: "sun", description: "Earn every other achievement.", rare: true, ultraRare: true },
 ];
 
 /*
@@ -478,11 +480,32 @@ function awardAchievements(ids) {
     }
   });
 
+  const completionId = "all-achievements";
+  const hasEveryOtherAchievement = ACHIEVEMENTS.every(
+    (achievement) => achievement.id === completionId || earned[achievement.id]
+  );
+  if (hasEveryOtherAchievement && !earned[completionId]) {
+    earned[completionId] = true;
+    newlyEarned.push(completionId);
+  }
+
   if (newlyEarned.length) {
     localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned));
     syncAchievements(newlyEarned);
     showAchievementToast(newlyEarned);
   }
+}
+
+async function loadAchievementStats() {
+  const data = await callKinshipSync("get_achievement_stats");
+  if (!data || !Number.isFinite(Number(data.participantCount))) return;
+
+  achievementStats = {
+    participantCount: Number(data.participantCount),
+    counts: data.counts && typeof data.counts === "object" ? data.counts : {},
+  };
+
+  if (document.querySelector(".achievements-modal")) showAchievements();
 }
 
 function showAchievementToast(ids) {
@@ -559,8 +582,20 @@ function achievementHTML(achievement, earned, progress = "") {
         <small>${hidden ? "" : achievement.description || ""}</small>
         ${progress}
       </div>
-      ${achievement.ultraRare ? '<em>Ultra rare</em>' : achievement.rare ? '<em>Rare</em>' : ""}
+      <div class="achievement-meta">
+        ${achievement.ultraRare ? '<em>Ultra rare</em>' : achievement.rare ? '<em>Rare</em>' : ""}
+        ${achievementRateHTML(achievement)}
+      </div>
     </article>`;
+}
+
+function achievementRateHTML(achievement) {
+  if (!achievementStats || achievementStats.participantCount < 1) return "";
+
+  const total = achievementStats.participantCount;
+  const count = Math.max(0, Number(achievementStats.counts[achievement.id]) || 0);
+  const percentage = Math.round((count / total) * 100);
+  return `<span class="achievement-rate" title="${count} of ${total} players" aria-label="${percentage}% of players have this achievement"><i aria-hidden="true"></i>${percentage}%</span>`;
 }
 
 function progressionAchievementHTML(ids, earned) {
@@ -1288,6 +1323,7 @@ $("end-game").addEventListener("click", () =>
 
 restoreParticipantProfile();
 loadLeaderboard();
+loadAchievementStats();
 loadRemoteAchievements();
 restoreSavedGame();
 function beginTurn() {

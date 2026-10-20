@@ -25,6 +25,7 @@ const achievementIds = new Set([
   "lost-turn-three",
   "last-convert",
   "archive-rediscovered",
+  "all-achievements",
 ]);
 const leaderboardSorts = {
   survival: {
@@ -373,6 +374,30 @@ Deno.serve(async (request) => {
       if (error) throw error;
 
       return reply({ achievementIds: (data ?? []).map((row) => row.achievement_id) });
+    }
+
+    if (action === "get_achievement_stats") {
+      const { count: participantCount, error: participantError } = await supabase
+        .from("kinship_participants")
+        .select("id", { count: "exact", head: true });
+      if (participantError) throw participantError;
+
+      const counts: Record<string, number> = {};
+      const countResults = await Promise.all(
+        [...achievementIds].map(async (achievementId) => {
+          const { count, error } = await supabase
+            .from("kinship_participant_achievements")
+            .select("participant_id", { count: "exact", head: true })
+            .eq("achievement_id", achievementId);
+          if (error) throw error;
+          return [achievementId, count ?? 0] as const;
+        })
+      );
+      countResults.forEach(([achievementId, count]) => {
+        counts[achievementId] = count;
+      });
+
+      return reply({ participantCount: participantCount ?? 0, counts });
     }
 
     if (action === "get_analysis") {

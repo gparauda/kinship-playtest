@@ -1155,6 +1155,28 @@ body {
 .achievement small { margin-top: 3px; color: var(--muted); font: 10px/1.35 Manrope, sans-serif; }
 .achievement em { color: #966d14; font: 700 9px "DM Mono", monospace; text-transform: uppercase; }
 
+.achievement-meta {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.achievement-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--moss);
+  font: 700 9px "DM Mono", monospace;
+}
+
+.achievement-rate i {
+  display: inline-block;
+  width: 9px;
+  height: 8px;
+  background: #b88920;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
 .achievement-progress {
   display: grid;
   grid-template-columns: 1fr auto;
