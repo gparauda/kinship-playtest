@@ -1309,3 +1309,36 @@ body {
   color: var(--muted);
   text-align: center;
 }
+
+.achievement-toast {
+  position: fixed;
+  z-index: 20;
+  top: 14px;
+  left: 50%;
+  display: grid;
+  gap: 2px;
+  min-width: min(320px, calc(100vw - 28px));
+  padding: 10px 14px;
+  border: 1px solid #b88920;
+  border-radius: 0 0 10px 10px;
+  background: #fff8df;
+  box-shadow: 0 8px 22px rgba(24, 37, 31, 0.18);
+  color: #5f4710;
+  font: 700 11px Manrope, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -130%);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.achievement-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.achievement-toast strong {
+  color: #8b6515;
+  font: 800 9px "DM Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

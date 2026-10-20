@@ -31,7 +31,7 @@ const leaderboardSorts = {
     column: "turns_survived",
     tieBreakers: ["victory", "legacy_chips", "final_people", "final_food"],
   },
-  successful_hunts: { column: "successful_hunts", tieBreakers: ["turns_survived"] },
+  total_achievements: { column: "total_achievements", tieBreakers: ["turns_survived"] },
   hunt_deaths: { column: "hunt_deaths", tieBreakers: ["turns_survived"] },
   legacy_chips: { column: "legacy_chips", tieBreakers: ["turns_survived"] },
   peak_innovation: { column: "peak_innovation", tieBreakers: ["turns_survived"] },
@@ -408,7 +408,7 @@ Deno.serve(async (request) => {
       let query = supabase
         .from("kinship_leaderboard_metrics")
         .select(
-          "player_name, turns_survived, victory, legacy_chips, final_people, final_food, successful_hunts, hunt_deaths, peak_innovation"
+          "player_name, turns_survived, victory, legacy_chips, final_people, final_food, total_achievements, hunt_deaths, peak_innovation"
         )
         .order(sort.column, { ascending: false });
 

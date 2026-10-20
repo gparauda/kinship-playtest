@@ -21,12 +21,13 @@ const THREAT_RANGES = [
 ];
 const LEADERBOARD_METRICS = {
   survival: { title: "Longest surviving", field: "turns_survived" },
-  successful_hunts: { title: "Most successful hunts", field: "successful_hunts" },
+  total_achievements: { title: "Most achievements", field: "total_achievements" },
   hunt_deaths: { title: "Most hunt deaths", field: "hunt_deaths" },
   legacy_chips: { title: "Most Sacred Legacies", field: "legacy_chips" },
   peak_innovation: { title: "Highest Innovation", field: "peak_innovation" },
 };
 let activeLeaderboardMetric = "survival";
+let achievementToastTimer = null;
 const CHOICE_EVENT_SCHEDULES = [
   { id: "buried_toolkit", era: 0, minimumTurn: 3, maximumTurn: 6 },
   { id: "aggressive_missionary", era: 1, minimumTurn: 9, maximumTurn: 13 },
@@ -480,7 +481,36 @@ function awardAchievements(ids) {
   if (newlyEarned.length) {
     localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(earned));
     syncAchievements(newlyEarned);
+    showAchievementToast(newlyEarned);
   }
+}
+
+function showAchievementToast(ids) {
+  const names = ids
+    .map((id) => ACHIEVEMENTS.find((achievement) => achievement.id === id)?.name)
+    .filter(Boolean);
+  if (!names.length) return;
+
+  let toast = $("achievement-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "achievement-toast";
+    toast.className = "achievement-toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `<strong>Achievement unlocked</strong><span>${names
+    .map((name) => escapeHTML(name))
+    .join(" · ")}</span>`;
+  toast.classList.remove("is-visible");
+  window.requestAnimationFrame(() => toast.classList.add("is-visible"));
+
+  window.clearTimeout(achievementToastTimer);
+  achievementToastTimer = window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+  }, 5000);
 }
 
 function upgradesMade() {
@@ -991,7 +1021,7 @@ function leaderboardValue(entry, metric) {
   }
 
   const labels = {
-    successful_hunts: "successful hunts",
+    total_achievements: "achievements",
     hunt_deaths: "hunt deaths",
     legacy_chips: "Legacies",
     peak_innovation: "Innovation",
