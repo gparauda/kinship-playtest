@@ -424,6 +424,17 @@ body {
   background: #f4f8ee;
 }
 
+.action-card.locked {
+  border-style: dashed;
+  background: #f5f0e5;
+}
+
+.action-card.locked .action-name-row h3::after {
+  content: " · Archive study";
+  color: var(--clay);
+  font-size: 9px;
+}
+
 .action-icon {
   display: grid;
   width: 34px;

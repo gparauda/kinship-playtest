@@ -106,6 +106,7 @@ const ACHIEVEMENTS = [
   { id: "face-five-upgrades", name: "The Gambler", shape: "anvil", rare: true },
   { id: "lost-turn-three", name: "Empty Chair", shape: "eclipse", description: "Lose the community on Turn 3.", rare: true, ultraRare: true },
   { id: "last-convert", name: "The Last Convert", shape: "eclipse", description: "Lose your final person to the Aggressive Missionary.", ultraRare: true },
+  { id: "archive-rediscovered", name: "The Archive Remembers", shape: "gate", description: "Survive to rediscover the Forgotten Archive on Turn 75.", rare: true },
 ];
 
 /*
@@ -576,6 +577,15 @@ function randomInteger(minimum, maximum) {
   return minimum + Math.floor(Math.random() * (maximum - minimum + 1));
 }
 
+function foodLockTurnsRemaining() {
+  const untilTurn = Number(state?.archiveMystery?.foodLockedUntilTurn || 0);
+  return Math.max(0, untilTurn - state.turn + 1);
+}
+
+function foodAllocationLocked() {
+  return foodLockTurnsRemaining() > 0;
+}
+
 function scheduleChoiceEvents() {
   return Object.fromEntries(
     CHOICE_EVENT_SCHEDULES.map((event) => [
@@ -944,6 +954,7 @@ function createNewState() {
     kinProjects: [],
     investments: [],
     choiceEventTurns: scheduleChoiceEvents(),
+    archiveMystery: null,
     materials: { Stick: 0, Rope: 0, Rock: 0 },
 
     upgrades: {
@@ -1023,6 +1034,7 @@ function restoreSavedGame() {
     state.food = Math.max(0, Number(state.food) || 0);
     state.investments = Array.isArray(state.investments) ? state.investments : [];
     state.choiceEventTurns = state.choiceEventTurns || scheduleChoiceEvents();
+    state.archiveMystery = state.archiveMystery || null;
     state.startTurnChoiceResolutions = [];
 
     $("skip-protection").checked = Boolean(
@@ -1229,6 +1241,25 @@ function beginTurn() {
     syncChoiceEventResolution(investment.choiceId, state.turn, resolution);
   });
 
+  let archiveRediscovery = null;
+  if (
+    state.turn === 75 &&
+    state.archiveMystery?.delayedReward &&
+    !state.archiveMystery.revealed
+  ) {
+    const prayerGained = Math.min(3, MAX_PRAYER - state.prayer);
+    state.prayer += prayerGained;
+    state.archiveMystery.revealed = true;
+    archiveRediscovery = { prayerGained };
+    addLog(`The Forgotten Archive was rediscovered: +${prayerGained} Prayer.`);
+    state.startTurnNotes.push("The Forgotten Archive was rediscovered.");
+    awardAchievements(["archive-rediscovered"]);
+    syncChoiceEventResolution(state.archiveMystery.choiceId, state.turn, {
+      prayerGained,
+      rediscovered: true,
+    });
+  }
+
   state.event = currentEvent();
   tryAutoClaimLegacy();
   evaluateAchievements();
@@ -1236,7 +1267,11 @@ function beginTurn() {
   state.turnPhase = "event";
   saveGame();
   render();
-  showEventReveal();
+  if (archiveRediscovery) {
+    showArchiveRediscovery(archiveRediscovery.prayerGained);
+  } else {
+    showEventReveal();
+  }
 }
 
 function tryAutoClaimLegacy() {
@@ -1382,9 +1417,11 @@ function renderActions() {
   ACTIONS.forEach((action) => {
     const assigned = state.allocations[action.id];
     const step = action.id === "K" ? 2 : 1;
+    const foodLocked = action.id === "F" && foodAllocationLocked();
+    const lockTurns = foodLockTurnsRemaining();
 
     const card = document.createElement("article");
-    card.className = `action-card ${assigned > 0 ? "active" : ""}`;
+    card.className = `action-card ${assigned > 0 ? "active" : ""} ${foodLocked ? "locked" : ""}`;
 
     card.innerHTML = `
       <div class="action-icon">${action.icon}</div>
@@ -1395,7 +1432,7 @@ function renderActions() {
           <span class="action-count">${assigned}</span>
         </div>
 
-        <p>${action.description}</p>
+        <p>${foodLocked ? `Unavailable while the Forgotten Archive is studied · ${lockTurns} turn${lockTurns === 1 ? "" : "s"} remaining.` : action.description}</p>
 
         <div class="action-meta">
           ${action.meta.map((item) => `<span>${item}</span>`).join("")}
@@ -1420,6 +1457,7 @@ function renderActions() {
 
     plusButton.disabled =
       remaining < step ||
+      foodLocked ||
       (action.id === "K" && !canStartKinshipProject());
 
     minusButton.addEventListener("click", () =>
@@ -1441,6 +1479,8 @@ function adjustAllocation(actionId, change) {
 
   if (nextValue < 0) return;
   if (change > 0 && availablePeople() < change) return;
+
+  if (actionId === "F" && change > 0 && foodAllocationLocked()) return;
 
   if (actionId === "K" && change > 0 && !canStartKinshipProject()) {
     return;
@@ -1702,6 +1742,75 @@ function showArchiveBreakthrough() {
   });
 }
 
+function archiveMysteryState(delayedReward = false) {
+  return {
+    foodLockedUntilTurn: state.turn + 2,
+    delayedReward,
+    revealAtTurn: delayedReward ? 75 : null,
+    revealed: false,
+    choiceId: null,
+  };
+}
+
+function addArchiveMaterial(material) {
+  state.materials[material] += 1;
+  if (
+    hasAvailableUpgrade() &&
+    state.materials.Stick > 0 &&
+    state.materials.Rope > 0 &&
+    state.materials.Rock > 0
+  ) {
+    state.materials.Stick -= 1;
+    state.materials.Rope -= 1;
+    state.materials.Rock -= 1;
+    state.innovation += 1;
+    return true;
+  }
+  return false;
+}
+
+function showArchiveMaterialChoice(mystery) {
+  const materials = ["Stick", "Rope", "Rock"];
+  $("result-content").innerHTML = `
+    <div class="result-inner">
+      <p class="eyebrow">Forgotten Archive</p>
+      <h2>Choose a recovered material</h2>
+      <p>The archive yields a single useful component. Food allocation is unavailable for the next 3 turns while its passages are studied.</p>
+      <div class="modal-actions">${materials.map((material) => choiceButton(`archive-material-${material}`, material, `Add 1 ${material}.`)).join("")}</div>
+    </div>
+  `;
+  if (!$("result-modal").open) $("result-modal").showModal();
+  materials.forEach((material) => {
+    $(`archive-material-${material}`).addEventListener("click", async () => {
+      const formedInnovation = addArchiveMaterial(material);
+      const choiceId = await recordChoiceEventResponse("forgotten_archive", "archive_mystery_material", {
+        material,
+        foodLockTurns: 3,
+        formedInnovation,
+      });
+      state.archiveMystery = { ...mystery, choiceId };
+      startChoiceAllocation(`The archive yielded 1 ${material}.`);
+    });
+  });
+}
+
+function showArchiveRediscovery(prayerGained) {
+  $("result-content").innerHTML = `
+    <div class="result-inner">
+      <p class="eyebrow">Turn 75</p>
+      <h2>The Archive Was Found</h2>
+      <p>What seemed lost beneath the earth has been rediscovered. Its final record strengthens the community's faith.</p>
+      <div class="event-effects"><span>+${prayerGained} Prayer</span></div>
+      <div class="modal-actions"><button id="archive-reveal-continue" class="button button-primary">Face this turn's event</button></div>
+    </div>
+  `;
+  $("result-modal").showModal();
+  $("archive-reveal-continue").addEventListener("click", () => {
+    $("result-modal").close();
+    showEventReveal();
+  });
+}
+
 function showChoiceEvent() {
   const event = state.event;
   const effects = eventEffectLabels(event);
@@ -1731,6 +1840,7 @@ function showChoiceEvent() {
     choices = `
       ${choiceButton("archive-study", "Study the archive: 8 Food + 2 Prayer", "Receive 2 saved Innovation.", state.food < 8 || state.prayer < 2)}
       ${choiceButton("archive-breakthrough", "Apply a breakthrough: 1 saved Innovation", "Permanently improve one physical die side beyond its usual limit.", state.innovation < 1 || !archiveBreakthroughChoices().length)}
+      ${choiceButton("archive-mystery", "Follow a cryptic instruction", "Food cannot be allocated for 3 turns. Receive an uncertain reward.")}
       ${choiceButton("choice-leave", "Leave it sealed", "Continue without changing the archive.")}
     `;
   }
@@ -1831,6 +1941,32 @@ function showChoiceEvent() {
   });
   const archiveBreakthrough = $("archive-breakthrough");
   if (archiveBreakthrough) archiveBreakthrough.addEventListener("click", () => { state.innovation -= 1; showArchiveBreakthrough(); });
+  const archiveMystery = $("archive-mystery");
+  if (archiveMystery) archiveMystery.addEventListener("click", async () => {
+    const roll = Math.random();
+    if (roll < 0.3) {
+      const mystery = archiveMysteryState(false);
+      const gained = Math.min(1, MAX_PRAYER - state.prayer);
+      state.prayer += gained;
+      const choiceId = await recordChoiceEventResponse(event.choiceEventId, "archive_mystery_prayer", {
+        foodLockTurns: 3,
+        prayerGained: gained,
+      });
+      state.archiveMystery = { ...mystery, choiceId };
+      startChoiceAllocation("The archive's instruction leaves you with renewed faith.");
+    } else if (roll < 0.6) {
+      showArchiveMaterialChoice(archiveMysteryState(false));
+    } else {
+      const delayedReward = roll < 0.9;
+      const mystery = archiveMysteryState(delayedReward);
+      const choiceId = await recordChoiceEventResponse(event.choiceEventId, "archive_mystery_empty", {
+        foodLockTurns: 3,
+        delayedReward,
+      });
+      state.archiveMystery = { ...mystery, choiceId };
+      startChoiceAllocation("The archive offers no answer.");
+    }
+  });
 
   const seasonFood = $("season-food");
   if (seasonFood) seasonFood.addEventListener("click", async () => {

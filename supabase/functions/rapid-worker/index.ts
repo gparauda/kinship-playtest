@@ -24,6 +24,7 @@ const achievementIds = new Set([
   "face-five-upgrades",
   "lost-turn-three",
   "last-convert",
+  "archive-rediscovered",
 ]);
 const leaderboardSorts = {
   survival: {
