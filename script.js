@@ -1721,7 +1721,7 @@ function showChoiceEvent() {
   if (event.choiceEventId === "aggressive_missionary") {
     choices = `
       ${choiceButton("missionary-innovation", "Offer 1 saved Innovation", "Receive 1 Prayer.", state.innovation < 1)}
-      ${choiceButton("missionary-person", "Give up 1 person", "Receive 3 Prayer. This can be your last person.", state.people < 1)}
+      ${choiceButton("missionary-person", "Give up 1 person", "Receive 3 Prayer.", state.people < 1)}
       ${choiceButton("missionary-food", "Offer 5 Food", "Receive 1 Prayer.", state.food < 5)}
       ${choiceButton("missionary-protect", "Turn him away: 2 Prayer", "Ignore his demand; Threat still applies.", state.prayer < 2)}
     `;
