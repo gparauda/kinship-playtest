@@ -1756,7 +1756,10 @@ function showChoiceEvent() {
       <h2>${event.title}</h2>
       <p>${event.description}</p>
       <div class="event-effects">${effects.map((effect) => `<span>${effect}</span>`).join("")}</div>
-      <p class="modal-note">This is a special decision. Its outcome is recorded for the study. Hunt Threat remains ${event.threat}.</p>
+      <details class="modal-note">
+        <summary>About this decision</summary>
+        <p>This is a special opportunity rather than a normal event modifier. Delayed rewards appear beside Kinship projects and cannot be completed early by Sacrifice. Hunt Threat remains ${event.threat}.</p>
+      </details>
       <div class="modal-actions">${choices}</div>
     </div>
   `;
@@ -3049,14 +3052,6 @@ function rulesHTML() {
         Hunt, and Worship events modify the final total from that action once,
         never every individual die. For example, Food rolls of 2, 2, and 3
         with “Food total +2” produce 9 Food—not 13.
-      </p>
-      <h3>Era decisions</h3>
-      <p>
-        Each era also brings one rare decision event. These offer trades,
-        discoveries, or longer-term investments instead of a normal event
-        modifier. Delayed investments appear beside active Kinship projects;
-        they cannot be completed early by Sacrifice. Your selected option and
-        any later result are recorded as playtest data.
       </p>
       <h3>Prayer and Sacred Legacy</h3>
       <p>
