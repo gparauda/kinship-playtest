@@ -23,6 +23,7 @@ const achievementIds = new Set([
   "five-skulls",
   "face-five-upgrades",
   "lost-turn-two",
+  "last-convert",
 ]);
 const leaderboardSorts = {
   survival: {
@@ -147,7 +148,7 @@ Deno.serve(async (request) => {
           game_experience: gameExperience,
           first_game: (priorSessions ?? 0) === 0,
           participant_id: participantId,
-          game_version: "2026-10-19-balance-v4",
+          game_version: "2026-10-20-choice-events-v1",
         })
         .select("id")
         .single();
@@ -261,6 +262,73 @@ Deno.serve(async (request) => {
 
       if (leaderboardError) throw leaderboardError;
 
+      return reply({ saved: true });
+    }
+
+    if (action === "record_choice_event") {
+      const sessionId = String(body.sessionId ?? "").trim();
+      const choice = body.choice ?? {};
+      const choiceId = String(choice.id ?? "").trim();
+      const eventId = String(choice.eventId ?? "").trim();
+      const eventTitle = String(choice.eventTitle ?? "").trim();
+      const optionId = String(choice.optionId ?? "").trim();
+      const turn = Number(choice.turn);
+      const era = Number(choice.era);
+
+      if (
+        !participantIdPattern.test(sessionId) ||
+        !participantIdPattern.test(choiceId) ||
+        !eventId ||
+        !eventTitle ||
+        !optionId ||
+        !Number.isInteger(turn) ||
+        !Number.isInteger(era)
+      ) {
+        return reply({ error: "Invalid choice-event data." }, 400);
+      }
+
+      const { error } = await supabase.from("kinship_choice_events").insert({
+        id: choiceId,
+        session_id: sessionId,
+        turn_number: turn,
+        era,
+        event_id: eventId,
+        event_title: eventTitle,
+        option_id: optionId,
+        response_details:
+          choice.details && typeof choice.details === "object" ? choice.details : {},
+      });
+
+      if (error) throw error;
+      return reply({ saved: true });
+    }
+
+    if (action === "resolve_choice_event") {
+      const sessionId = String(body.sessionId ?? "").trim();
+      const choiceId = String(body.choiceId ?? "").trim();
+      const resolvedTurn = Number(body.resolvedTurn);
+
+      if (
+        !participantIdPattern.test(sessionId) ||
+        !participantIdPattern.test(choiceId) ||
+        !Number.isInteger(resolvedTurn)
+      ) {
+        return reply({ error: "Invalid choice-event resolution." }, 400);
+      }
+
+      const { error } = await supabase
+        .from("kinship_choice_events")
+        .update({
+          resolved_turn: resolvedTurn,
+          resolution_details:
+            body.resolution && typeof body.resolution === "object"
+              ? body.resolution
+              : {},
+        })
+        .eq("id", choiceId)
+        .eq("session_id", sessionId);
+
+      if (error) throw error;
       return reply({ saved: true });
     }
 

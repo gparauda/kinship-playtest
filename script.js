@@ -5,7 +5,7 @@
   Player-facing wording is in GAME_TEXT, ACTIONS, EVENT_DECKS, and rulesHTML().
 */
 
-const SAVE_KEY = "kinship-playtest-save-v7";
+const SAVE_KEY = "kinship-playtest-save-v8";
 const ACHIEVEMENTS_KEY = "kinship-playtest-achievements-v1";
 const PARTICIPANT_ID_KEY = "kinship-playtest-participant-v1";
 const PARTICIPANT_PROFILE_KEY = "kinship-playtest-profile-v1";
@@ -27,6 +27,13 @@ const LEADERBOARD_METRICS = {
   peak_innovation: { title: "Highest Innovation", field: "peak_innovation" },
 };
 let activeLeaderboardMetric = "survival";
+const CHOICE_EVENT_SCHEDULES = [
+  { id: "buried_toolkit", era: 0, minimumTurn: 2, maximumTurn: 6 },
+  { id: "aggressive_missionary", era: 1, minimumTurn: 9, maximumTurn: 13 },
+  { id: "forgotten_archive", era: 2, minimumTurn: 17, maximumTurn: 27 },
+  { id: "season_of_plenty", era: 3, minimumTurn: 35, maximumTurn: 50 },
+  { id: "distant_hearths", era: 4, minimumTurn: 65, maximumTurn: 94 },
+];
 
 const GAME_TEXT = {
   firstTurnTitle: "First Turn",
@@ -98,6 +105,7 @@ const ACHIEVEMENTS = [
   { id: "five-skulls", name: "Land of the Dead", shape: "star", rare: true },
   { id: "face-five-upgrades", name: "The Gambler", shape: "anvil", rare: true },
   { id: "lost-turn-two", name: "Empty Chair", shape: "eclipse", rare: true, ultraRare: true },
+  { id: "last-convert", name: "The Last Convert", shape: "eclipse", description: "Lose your final person to the Aggressive Missionary.", ultraRare: true },
 ];
 
 /*
@@ -544,7 +552,7 @@ function showAchievements() {
       </div>
       <button id="achievements-close" class="button button-primary">Close</button>
     </div>`;
-  $("result-modal").showModal();
+  if (!$("result-modal").open) $("result-modal").showModal();
   $("achievements-close").addEventListener("click", () => $("result-modal").close());
 }
 
@@ -562,6 +570,51 @@ function eraEndTurn(era = currentEraIndex()) {
 
 function turnsLeftInEra() {
   return eraEndTurn() - state.turn + 1;
+}
+
+function randomInteger(minimum, maximum) {
+  return minimum + Math.floor(Math.random() * (maximum - minimum + 1));
+}
+
+function scheduleChoiceEvents() {
+  return Object.fromEntries(
+    CHOICE_EVENT_SCHEDULES.map((event) => [
+      event.id,
+      randomInteger(event.minimumTurn, event.maximumTurn),
+    ])
+  );
+}
+
+function choiceEventForTurn() {
+  const event = CHOICE_EVENT_SCHEDULES.find(
+    (candidate) => state.choiceEventTurns?.[candidate.id] === state.turn
+  );
+  if (!event) return null;
+
+  const details = {
+    buried_toolkit: {
+      title: "Buried Toolkit",
+      description: "Half-buried tools gleam beneath the soil. Keep digging, or leave the find untouched.",
+    },
+    aggressive_missionary: {
+      title: "Aggressive Missionary",
+      description: "“Do you have a moment to speak about the Gods?” His smile does not make the question feel optional.",
+    },
+    forgotten_archive: {
+      title: "Forgotten Archive",
+      description: "A sealed archive promises knowledge, if the community can spare the resources to recover it.",
+    },
+    season_of_plenty: {
+      title: "Season of Plenty",
+      description: "A rare growing season offers a chance to invest in the community's future.",
+    },
+    distant_hearths: {
+      title: "Distant Hearths",
+      description: "A large neighboring community offers a final pact as new possibilities open beyond the valley.",
+    },
+  }[event.id];
+
+  return { ...details, choiceEventId: event.id };
 }
 
 function currentEvent() {
@@ -583,6 +636,9 @@ function currentEvent() {
   const threat =
     minimumThreat +
     Math.floor(Math.random() * (maximumThreat - minimumThreat + 1));
+
+  const choiceEvent = choiceEventForTurn();
+  if (choiceEvent) return { ...choiceEvent, threat };
 
   // Threat is intentionally independent from the event card and its modifier.
   return { ...deck[Math.floor(Math.random() * deck.length)], threat };
@@ -724,6 +780,42 @@ async function syncTurnToSupabase(turn) {
   }
 }
 
+async function recordChoiceEventResponse(eventId, optionId, details = {}) {
+  const sessionId = state.remoteSessionId || (await startRemoteSession());
+  const choiceId = crypto.randomUUID();
+
+  if (!sessionId) return choiceId;
+
+  await callKinshipSync("record_choice_event", {
+    sessionId,
+    choice: {
+      id: choiceId,
+      turn: state.turn,
+      era: currentEraIndex() + 1,
+      eventId,
+      eventTitle: state.event.title,
+      optionId,
+      details,
+    },
+  });
+
+  return choiceId;
+}
+
+async function syncChoiceEventResolution(choiceId, resolvedTurn, resolution) {
+  if (!choiceId || !state) return;
+
+  const sessionId = state.remoteSessionId || (await startRemoteSession());
+  if (!sessionId) return;
+
+  await callKinshipSync("resolve_choice_event", {
+    sessionId,
+    choiceId,
+    resolvedTurn,
+    resolution,
+  });
+}
+
 async function finishRemoteSession(reason) {
   if (!state) return;
 
@@ -850,6 +942,8 @@ function createNewState() {
 
     allocations: { F: 0, K: 0, H: 0, T: 0, W: 0 },
     kinProjects: [],
+    investments: [],
+    choiceEventTurns: scheduleChoiceEvents(),
     materials: { Stick: 0, Rope: 0, Rock: 0 },
 
     upgrades: {
@@ -868,6 +962,7 @@ function createNewState() {
     syncedTurnNumbers: [],
     remoteSessionId: null,
     startTurnNotes: [],
+    startTurnChoiceResolutions: [],
     turnPhase: "rules",
     gameOver: false,
     tutorialSeen: false,
@@ -924,6 +1019,9 @@ function restoreSavedGame() {
     state.innovation = Number.isInteger(state.innovation)
       ? state.innovation
       : 0;
+    state.investments = Array.isArray(state.investments) ? state.investments : [];
+    state.choiceEventTurns = state.choiceEventTurns || scheduleChoiceEvents();
+    state.startTurnChoiceResolutions = [];
 
     $("skip-protection").checked = Boolean(
       state.preferences?.skipProtection
@@ -1045,6 +1143,7 @@ function beginTurn() {
   state.allocations = { F: 0, K: 0, H: 0, T: 0, W: 0 };
   state.protected = false;
   state.startTurnNotes = [];
+  state.startTurnChoiceResolutions = [];
 
   const completedProjects = [];
 
@@ -1088,6 +1187,46 @@ function beginTurn() {
     }
   }
 
+  const completedInvestments = [];
+  state.investments.forEach((investment) => {
+    investment.turnsRemaining -= 1;
+    if (investment.turnsRemaining <= 0) completedInvestments.push(investment);
+  });
+  state.investments = state.investments.filter(
+    (investment) => investment.turnsRemaining > 0
+  );
+
+  completedInvestments.forEach((investment) => {
+    let message = "";
+    let resolution = {};
+    if (investment.type === "season_food") {
+      state.food += 20;
+      message = "Season of Plenty: the stores ripened after spoilage; +20 Food.";
+      resolution = { food_gained: 20 };
+    } else if (investment.type === "season_people") {
+      const newcomers = Math.min(
+        3,
+        Math.max(0, communityCapacity() - state.people)
+      );
+      state.people += newcomers;
+      message = `Season of Plenty: the settlement party returned; ${newcomers} new person${newcomers === 1 ? "" : "s"} joined.`;
+      resolution = { newcomers };
+    } else if (investment.type === "hearth_expedition") {
+      state.food += 20;
+      state.innovation += 3;
+      message = "Distant Hearths: the expedition returned with +20 Food and +3 saved Innovation.";
+      resolution = { food_gained: 20, innovation_gained: 3 };
+    }
+    addLog(message);
+    state.startTurnNotes.push(message);
+    state.startTurnChoiceResolutions.push({
+      choiceId: investment.choiceId,
+      eventId: investment.eventId,
+      resolution,
+    });
+    syncChoiceEventResolution(investment.choiceId, state.turn, resolution);
+  });
+
   state.event = currentEvent();
   tryAutoClaimLegacy();
   evaluateAchievements();
@@ -1116,10 +1255,15 @@ function tryAutoClaimLegacy() {
 }
 
 function workersInProjects() {
-  return state.kinProjects.reduce(
+  const kinshipWorkers = state.kinProjects.reduce(
     (total, project) => total + project.people,
     0
   );
+  const investmentWorkers = state.investments.reduce(
+    (total, investment) => total + (investment.people || 0),
+    0
+  );
+  return kinshipWorkers + investmentWorkers;
 }
 
 function allocatedPeople() {
@@ -1381,12 +1525,15 @@ function renderTechnologies() {
 
 function renderKinshipProjects() {
   const projects = state.kinProjects;
-  $("kinship-count").textContent = projects.length
-    ? `${projects.length} active`
+  const investments = state.investments;
+  const activeCount = projects.length + investments.length;
+  $("kinship-count").textContent = activeCount
+    ? `${activeCount} active`
     : "No projects";
 
-  $("kinship-projects").innerHTML = projects.length
-    ? projects
+  $("kinship-projects").innerHTML = activeCount
+    ? [
+        ...projects
         .map(
           (project, index) => `
             <div class="kinship-project">
@@ -1396,8 +1543,16 @@ function renderKinshipProjects() {
                 project.turnsRemaining === 1 ? "" : "s"
               } left</strong>
             </div>`
-        )
-        .join("")
+        ),
+        ...investments.map(
+          (investment) => `
+            <div class="kinship-project">
+              <span class="kinship-project-icon">${investment.type === "season_food" ? "🌱" : investment.type === "season_people" ? "🏡" : "🧭"}</span>
+              <span>${investment.label}</span>
+              <strong>${investment.turnsRemaining} turn${investment.turnsRemaining === 1 ? "" : "s"} left</strong>
+            </div>`
+        ),
+      ].join("")
     : `<p class="kinship-empty">Assign 2 people to Kinship to begin a project.</p>`;
 }
 
@@ -1484,7 +1639,228 @@ function renderLog() {
     .join("");
 }
 
+function startChoiceAllocation(message) {
+  if (message) addLog(message);
+  state.turnPhase = "allocation";
+  saveGame();
+  $("result-modal").close();
+  render();
+}
+
+function choiceButton(id, label, description, disabled = false) {
+  return `
+    <button id="${id}" class="button button-secondary" ${disabled ? "disabled" : ""}>
+      <strong>${label}</strong><small>${description}</small>
+    </button>
+  `;
+}
+
+async function finishChoice(eventId, optionId, details, message) {
+  await recordChoiceEventResponse(eventId, optionId, details);
+  startChoiceAllocation(message);
+}
+
+function archiveBreakthroughChoices() {
+  const faces = [];
+  FOOD_FACES.forEach((base, index) => {
+    const side = index + 1;
+    if (bonusFor("F", side) < 6) faces.push({ die: "F", side, label: `Food side ${side}`, value: base + bonusFor("F", side) });
+  });
+  [3, 4, 5, 6].forEach((side) => {
+    if (bonusFor("H", side) < 6) faces.push({ die: "H", side, label: `Hunt side ${side}`, value: side + bonusFor("H", side) });
+  });
+  [3, 4, 5, 6].forEach((side) => {
+    if (bonusFor("W", side) < 6) faces.push({ die: "W", side, label: `Worship side ${side}`, value: 1 + bonusFor("W", side) });
+  });
+  return faces;
+}
+
+function showArchiveBreakthrough() {
+  const choices = archiveBreakthroughChoices();
+  $("result-content").innerHTML = `
+    <div class="result-inner">
+      <p class="eyebrow">Forgotten Archive</p>
+      <h2>Choose a breakthrough</h2>
+      <p>One eligible physical die face permanently gains +1, even if ordinary Innovation has already reached its usual limit.</p>
+      <div class="modal-actions">${choices.map((choice, index) => choiceButton(`archive-face-${index}`, choice.label, `Current result: ${choice.value}. Gain +1.`)).join("")}</div>
+    </div>
+  `;
+  if (!$("result-modal").open) $("result-modal").showModal();
+  choices.forEach((choice, index) => {
+    $(`archive-face-${index}`).addEventListener("click", async () => {
+      state.upgrades[choice.die][choice.side] += 1;
+      await finishChoice("forgotten_archive", "archive_breakthrough", {
+        innovationSpent: 1,
+        die: choice.die,
+        side: choice.side,
+        previousValue: choice.value,
+        newValue: choice.value + 1,
+      }, `The archive transformed ${choice.label}.`);
+    });
+  });
+}
+
+function showChoiceEvent() {
+  const event = state.event;
+  const effects = eventEffectLabels(event);
+  const available = availablePeople();
+  let choices = "";
+
+  if (event.choiceEventId === "buried_toolkit") {
+    const attempts = event.toolkitAttempts || [];
+    const steps = [{ cost: 1, chance: 10 }, { cost: 2, chance: 25 }, { cost: 3, chance: 50 }, { cost: 4, chance: 75 }];
+    const step = steps[attempts.length];
+    choices = step
+      ? `${choiceButton("toolkit-dig", `Keep digging: ${step.cost} Food`, `${step.chance}% chance to find 1 saved Innovation.`, state.food < step.cost)}
+         ${choiceButton("choice-leave", "Leave it buried", "Continue without spending Food.")}`
+      : choiceButton("choice-leave", "Leave the empty site", "Continue to allocation.");
+  }
+
+  if (event.choiceEventId === "aggressive_missionary") {
+    choices = `
+      ${choiceButton("missionary-innovation", "Offer 1 saved Innovation", "Receive 1 Prayer.", state.innovation < 1)}
+      ${choiceButton("missionary-person", "Give up 1 person", "Receive 3 Prayer. This can be your last person.", state.people < 1)}
+      ${choiceButton("missionary-food", "Offer 5 Food", "Receive 1 Prayer.", state.food < 5)}
+      ${choiceButton("missionary-protect", "Turn him away: 2 Prayer", "Ignore his demand; Threat still applies.", state.prayer < 2)}
+    `;
+  }
+
+  if (event.choiceEventId === "forgotten_archive") {
+    choices = `
+      ${choiceButton("archive-study", "Study the archive: 8 Food + 2 Prayer", "Receive 2 saved Innovation.", state.food < 8 || state.prayer < 2)}
+      ${choiceButton("archive-breakthrough", "Apply a breakthrough: 1 saved Innovation", "Permanently improve one physical die side beyond its usual limit.", state.innovation < 1 || !archiveBreakthroughChoices().length)}
+      ${choiceButton("choice-leave", "Leave it sealed", "Continue without changing the archive.")}
+    `;
+  }
+
+  if (event.choiceEventId === "season_of_plenty") {
+    choices = `
+      ${choiceButton("season-food", "Store 5 Food", "After 5 turns, receive 20 Food after spoilage.", state.food < 5)}
+      ${choiceButton("season-people", "Send 2 people", "After 5 turns, up to 3 newcomers join if capacity permits. The 2 people are unavailable until then.", available < 2)}
+      ${choiceButton("choice-leave", "Let the season pass", "Continue without making an investment.")}
+    `;
+  }
+
+  if (event.choiceEventId === "distant_hearths") {
+    choices = `
+      ${choiceButton("hearth-food", "Share 15 Food", "Up to 2 people join immediately, limited by Capacity.", state.food < 15)}
+      ${choiceButton("hearth-innovation", "Trade 2 saved Innovation", "Receive 5 Prayer.", state.innovation < 2)}
+      ${choiceButton("hearth-expedition", "Send an expedition of 3 people", "After 5 turns, it returns with 20 Food and 3 saved Innovation.", available < 3)}
+      ${choiceButton("choice-leave", "Decline the pact", "Continue without making a trade.")}
+    `;
+  }
+
+  $("result-content").innerHTML = `
+    <div class="result-inner">
+      <p class="eyebrow">Turn ${state.turn} decision</p>
+      <h2>${event.title}</h2>
+      <p>${event.description}</p>
+      <div class="event-effects">${effects.map((effect) => `<span>${effect}</span>`).join("")}</div>
+      <p class="modal-note">This is a special decision. Its outcome is recorded for the study. Hunt Threat remains ${event.threat}.</p>
+      <div class="modal-actions">${choices}</div>
+    </div>
+  `;
+  if (!$("result-modal").open) $("result-modal").showModal();
+
+  const leave = $("choice-leave");
+  if (leave) leave.addEventListener("click", () => finishChoice(event.choiceEventId, "declined", {}, "The opportunity was declined."));
+
+  const dig = $("toolkit-dig");
+  if (dig) dig.addEventListener("click", async () => {
+    const steps = [{ cost: 1, chance: 10 }, { cost: 2, chance: 25 }, { cost: 3, chance: 50 }, { cost: 4, chance: 75 }];
+    const step = steps[(event.toolkitAttempts || []).length];
+    state.food -= step.cost;
+    const found = Math.random() * 100 < step.chance;
+    event.toolkitAttempts = [...(event.toolkitAttempts || []), { ...step, found }];
+    if (found) {
+      state.innovation += 1;
+      await finishChoice(event.choiceEventId, "found_innovation", { attempts: event.toolkitAttempts }, "The buried toolkit yielded 1 saved Innovation.");
+    } else if (event.toolkitAttempts.length === steps.length) {
+      await finishChoice(event.choiceEventId, "exhausted_toolkit", { attempts: event.toolkitAttempts }, "The excavation found nothing more.");
+    } else {
+      saveGame();
+      showChoiceEvent();
+    }
+  });
+
+  const missionaryInnovation = $("missionary-innovation");
+  if (missionaryInnovation) missionaryInnovation.addEventListener("click", async () => {
+    state.innovation -= 1;
+    const gained = Math.min(1, 11 - state.prayer); state.prayer += gained;
+    await finishChoice(event.choiceEventId, "innovation_for_prayer", { innovationSpent: 1, prayerGained: gained }, "The missionary accepted an Innovation.");
+  });
+  const missionaryFood = $("missionary-food");
+  if (missionaryFood) missionaryFood.addEventListener("click", async () => {
+    state.food -= 5;
+    const gained = Math.min(1, 11 - state.prayer); state.prayer += gained;
+    await finishChoice(event.choiceEventId, "food_for_prayer", { foodSpent: 5, prayerGained: gained }, "The missionary accepted your stores.");
+  });
+  const missionaryProtect = $("missionary-protect");
+  if (missionaryProtect) missionaryProtect.addEventListener("click", async () => {
+    state.prayer -= 2; state.protected = true;
+    await finishChoice(event.choiceEventId, "turned_away", { prayerSpent: 2 }, "The missionary was turned away.");
+  });
+  const missionaryPerson = $("missionary-person");
+  if (missionaryPerson) missionaryPerson.addEventListener("click", async () => {
+    state.people -= 1;
+    const gained = Math.min(3, 11 - state.prayer); state.prayer += gained;
+    await recordChoiceEventResponse(event.choiceEventId, "person_for_prayer", { peopleLost: 1, prayerGained: gained, lastPerson: state.people === 0 });
+    if (state.people === 0) {
+      awardAchievements(["last-convert"]);
+      $("result-modal").close();
+      endGame("The Aggressive Missionary took the final member of the community.");
+    } else {
+      startChoiceAllocation("One person departed with the missionary.");
+    }
+  });
+
+  const archiveStudy = $("archive-study");
+  if (archiveStudy) archiveStudy.addEventListener("click", async () => {
+    state.food -= 8; state.prayer -= 2; state.innovation += 2;
+    await finishChoice(event.choiceEventId, "studied_archive", { foodSpent: 8, prayerSpent: 2, innovationGained: 2 }, "The archive revealed 2 saved Innovation.");
+  });
+  const archiveBreakthrough = $("archive-breakthrough");
+  if (archiveBreakthrough) archiveBreakthrough.addEventListener("click", () => { state.innovation -= 1; showArchiveBreakthrough(); });
+
+  const seasonFood = $("season-food");
+  if (seasonFood) seasonFood.addEventListener("click", async () => {
+    state.food -= 5;
+    const choiceId = await recordChoiceEventResponse(event.choiceEventId, "seasonal_food", { foodSpent: 5, expectedFood: 20, delayTurns: 5 });
+    state.investments.push({ type: "season_food", label: "Seasonal stores · +20 Food", turnsRemaining: 5, people: 0, choiceId });
+    startChoiceAllocation("Stores were set aside for the coming season.");
+  });
+  const seasonPeople = $("season-people");
+  if (seasonPeople) seasonPeople.addEventListener("click", async () => {
+    const choiceId = await recordChoiceEventResponse(event.choiceEventId, "settlement_party", { peopleCommitted: 2, expectedNewcomers: 3, delayTurns: 5 });
+    state.investments.push({ type: "season_people", label: "Settlement party · up to +3 people", turnsRemaining: 5, people: 2, choiceId });
+    startChoiceAllocation("Two people left to prepare a new settlement.");
+  });
+
+  const hearthFood = $("hearth-food");
+  if (hearthFood) hearthFood.addEventListener("click", async () => {
+    state.food -= 15;
+    const newcomers = Math.min(2, Math.max(0, communityCapacity() - state.people)); state.people += newcomers;
+    await finishChoice(event.choiceEventId, "shared_stores", { foodSpent: 15, newcomers }, `${newcomers} person${newcomers === 1 ? "" : "s"} joined the community.`);
+  });
+  const hearthInnovation = $("hearth-innovation");
+  if (hearthInnovation) hearthInnovation.addEventListener("click", async () => {
+    state.innovation -= 2;
+    const gained = Math.min(5, 11 - state.prayer); state.prayer += gained;
+    await finishChoice(event.choiceEventId, "traded_knowledge", { innovationSpent: 2, prayerGained: gained }, "The pact strengthened your divine legacy.");
+  });
+  const hearthExpedition = $("hearth-expedition");
+  if (hearthExpedition) hearthExpedition.addEventListener("click", async () => {
+    const choiceId = await recordChoiceEventResponse(event.choiceEventId, "sent_expedition", { peopleCommitted: 3, expectedFood: 20, expectedInnovation: 3, delayTurns: 5 });
+    state.investments.push({ type: "hearth_expedition", label: "Distant expedition · +20 Food, +3 Innovation", turnsRemaining: 5, people: 3, choiceId });
+    startChoiceAllocation("An expedition departed for the distant hearths.");
+  });
+}
+
 function showEventReveal() {
+  if (state.event.choiceEventId) {
+    showChoiceEvent();
+    return;
+  }
   const event = state.event;
   const effects = eventEffectLabels(event);
   const startNotes = state.startTurnNotes || [];
@@ -2673,6 +3049,14 @@ function rulesHTML() {
         Hunt, and Worship events modify the final total from that action once,
         never every individual die. For example, Food rolls of 2, 2, and 3
         with “Food total +2” produce 9 Food—not 13.
+      </p>
+      <h3>Era decisions</h3>
+      <p>
+        Each era also brings one rare decision event. These offer trades,
+        discoveries, or longer-term investments instead of a normal event
+        modifier. Delayed investments appear beside active Kinship projects;
+        they cannot be completed early by Sacrifice. Your selected option and
+        any later result are recorded as playtest data.
       </p>
       <h3>Prayer and Sacred Legacy</h3>
       <p>
