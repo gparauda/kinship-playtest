@@ -1241,6 +1241,7 @@ function beginTurn() {
   }
 
   const completedInvestments = [];
+  let innovationRewardReady = false;
   state.investments.forEach((investment) => {
     investment.turnsRemaining -= 1;
     if (investment.turnsRemaining <= 0) completedInvestments.push(investment);
@@ -1267,6 +1268,7 @@ function beginTurn() {
     } else if (investment.type === "hearth_expedition") {
       state.food += 20;
       state.innovation += 3;
+      innovationRewardReady = true;
       message = "Distant Hearths: the expedition returned with +20 Food and +3 saved Innovation.";
       resolution = { food_gained: 20, innovation_gained: 3 };
     }
@@ -1306,10 +1308,18 @@ function beginTurn() {
   state.turnPhase = "event";
   saveGame();
   render();
-  if (archiveRediscovery) {
-    showArchiveRediscovery(archiveRediscovery.prayerGained);
+  const continueToTurnEvent = () => {
+    if (archiveRediscovery) {
+      showArchiveRediscovery(archiveRediscovery.prayerGained);
+    } else {
+      showEventReveal();
+    }
+  };
+
+  if (innovationRewardReady && state.innovation > 0 && hasAvailableUpgrade()) {
+    showTechnologyUpgrade(null, false, continueToTurnEvent);
   } else {
-    showEventReveal();
+    continueToTurnEvent();
   }
 }
 
@@ -1720,12 +1730,19 @@ function renderLog() {
     .join("");
 }
 
-function startChoiceAllocation(message) {
+function startChoiceAllocation(message, openInnovation = false) {
   if (message) addLog(message);
   state.turnPhase = "allocation";
   saveGame();
   $("result-modal").close();
   render();
+
+  if (openInnovation && state.innovation > 0 && hasAvailableUpgrade()) {
+    showTechnologyUpgrade(null, false, () => {
+      saveGame();
+      render();
+    });
+  }
 }
 
 function choiceButton(id, label, description, disabled = false) {
@@ -1736,9 +1753,9 @@ function choiceButton(id, label, description, disabled = false) {
   `;
 }
 
-async function finishChoice(eventId, optionId, details, message) {
+async function finishChoice(eventId, optionId, details, message, openInnovation = false) {
   await recordChoiceEventResponse(eventId, optionId, details);
-  startChoiceAllocation(message);
+  startChoiceAllocation(message, openInnovation);
 }
 
 function archiveBreakthroughChoices() {
@@ -1828,7 +1845,7 @@ function showArchiveMaterialChoice(mystery) {
         formedInnovation,
       });
       state.archiveMystery = { ...mystery, choiceId };
-      startChoiceAllocation(`The archive yielded 1 ${material}.`);
+      startChoiceAllocation(`The archive yielded 1 ${material}.`, formedInnovation);
     });
   });
 }
@@ -1843,7 +1860,7 @@ function showArchiveRediscovery(prayerGained) {
       <div class="modal-actions"><button id="archive-reveal-continue" class="button button-primary">Face this turn's event</button></div>
     </div>
   `;
-  $("result-modal").showModal();
+  if (!$("result-modal").open) $("result-modal").showModal();
   $("archive-reveal-continue").addEventListener("click", () => {
     $("result-modal").close();
     showEventReveal();
@@ -1933,7 +1950,7 @@ function showChoiceEvent() {
     event.toolkitAttempts = [...(event.toolkitAttempts || []), { ...step, found }];
     if (found) {
       state.innovation += 1;
-      await finishChoice(event.choiceEventId, "found_innovation", { attempts: event.toolkitAttempts }, "The buried toolkit yielded 1 saved Innovation.");
+      await finishChoice(event.choiceEventId, "found_innovation", { attempts: event.toolkitAttempts }, "The buried toolkit yielded 1 saved Innovation.", true);
     } else if (event.toolkitAttempts.length === steps.length) {
       await finishChoice(event.choiceEventId, "exhausted_toolkit", { attempts: event.toolkitAttempts }, "The excavation found nothing more.");
     } else {
@@ -1976,7 +1993,7 @@ function showChoiceEvent() {
   const archiveStudy = $("archive-study");
   if (archiveStudy) archiveStudy.addEventListener("click", async () => {
     state.food -= 8; state.prayer -= 2; state.innovation += 2;
-    await finishChoice(event.choiceEventId, "studied_archive", { foodSpent: 8, prayerSpent: 2, innovationGained: 2 }, "The archive revealed 2 saved Innovation.");
+    await finishChoice(event.choiceEventId, "studied_archive", { foodSpent: 8, prayerSpent: 2, innovationGained: 2 }, "The archive revealed 2 saved Innovation.", true);
   });
   const archiveBreakthrough = $("archive-breakthrough");
   if (archiveBreakthrough) archiveBreakthrough.addEventListener("click", () => { state.innovation -= 1; showArchiveBreakthrough(); });
@@ -2859,7 +2876,7 @@ function showTechnologyUpgrade(research, isFree = false, onComplete = processCho
     </div>
   `;
 
-  $("result-modal").showModal();
+  if (!$("result-modal").open) $("result-modal").showModal();
 
   document.querySelectorAll(".upgrade-die-face").forEach((button) => {
     button.addEventListener("click", () => {
@@ -2887,8 +2904,20 @@ function showTechnologyUpgrade(research, isFree = false, onComplete = processCho
       }
 
       saveGame();
-      $("result-modal").close();
 
+      // Paid Innovation remains available for additional upgrades until the
+      // player saves it or cannot afford any remaining eligible face.
+      if (
+        !isFree &&
+        availableUpgradeChoices().some(
+          (candidate) => innovationCost(candidate) <= state.innovation
+        )
+      ) {
+        showTechnologyUpgrade(research, false, onComplete);
+        return;
+      }
+
+      $("result-modal").close();
       onComplete();
     });
   });
