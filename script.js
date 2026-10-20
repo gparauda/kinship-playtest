@@ -23,7 +23,6 @@ const LEADERBOARD_METRICS = {
   survival: { title: "Longest surviving", field: "turns_survived" },
   total_achievements: { title: "Most achievements", field: "total_achievements" },
   hunt_deaths: { title: "Most hunt deaths", field: "hunt_deaths" },
-  legacy_chips: { title: "Most Sacred Legacies", field: "legacy_chips" },
   peak_innovation: { title: "Highest Innovation", field: "peak_innovation" },
 };
 let activeLeaderboardMetric = "survival";

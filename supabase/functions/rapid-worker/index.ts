@@ -34,7 +34,6 @@ const leaderboardSorts = {
   },
   total_achievements: { column: "total_achievements", tieBreakers: ["turns_survived"] },
   hunt_deaths: { column: "hunt_deaths", tieBreakers: ["turns_survived"] },
-  legacy_chips: { column: "legacy_chips", tieBreakers: ["turns_survived"] },
   peak_innovation: { column: "peak_innovation", tieBreakers: ["turns_survived"] },
 } as const;
 
