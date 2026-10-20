@@ -28,7 +28,7 @@ const LEADERBOARD_METRICS = {
 };
 let activeLeaderboardMetric = "survival";
 const CHOICE_EVENT_SCHEDULES = [
-  { id: "buried_toolkit", era: 0, minimumTurn: 2, maximumTurn: 6 },
+  { id: "buried_toolkit", era: 0, minimumTurn: 3, maximumTurn: 6 },
   { id: "aggressive_missionary", era: 1, minimumTurn: 9, maximumTurn: 13 },
   { id: "forgotten_archive", era: 2, minimumTurn: 17, maximumTurn: 27 },
   { id: "season_of_plenty", era: 3, minimumTurn: 35, maximumTurn: 50 },
