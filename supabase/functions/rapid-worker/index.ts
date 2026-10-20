@@ -149,7 +149,7 @@ Deno.serve(async (request) => {
           game_experience: gameExperience,
           first_game: (priorSessions ?? 0) === 0,
           participant_id: participantId,
-          game_version: "2026-10-20-short-finale-v1",
+          game_version: "2026-10-20-food-collapse-v1",
         })
         .select("id")
         .single();

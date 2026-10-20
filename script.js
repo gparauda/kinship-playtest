@@ -831,6 +831,24 @@ function applyBlightedHarvest(event) {
   state.startTurnNotes.push(message);
 }
 
+function applyFoodYieldCollapse() {
+  const reducedFaces = [];
+
+  for (let side = 1; side <= 6; side += 1) {
+    const previousValue = foodFaceValue(side);
+    const reducedValue = Math.ceil(previousValue / 2);
+    state.foodFaceBase[side] = reducedValue;
+    state.upgrades.F[side] = 0;
+    state.foodFacePenalty[side] = 0;
+    reducedFaces.push(`${previousValue}→${reducedValue}`);
+  }
+
+  state.foodYieldCollapsed = true;
+  const message = `The fields are exhausted. Food die faces were reduced: ${reducedFaces.join(", ")}.`;
+  addLog(message);
+  state.startTurnNotes.push(message);
+}
+
 /*
   SUPABASE CONNECTION
   The URL and public key come from supabase-config.js.
@@ -1115,8 +1133,10 @@ function createNewState() {
     archiveMystery: null,
     waterProtectionUntilTurn: 0,
     materials: { Stick: 0, Rope: 0, Rock: 0 },
+    foodFaceBase: [0, ...FOOD_FACES],
     foodFacePenalty: [0, 0, 0, 0, 0, 0, 0],
     blightedHarvestEras: [],
+    foodYieldCollapsed: false,
 
     upgrades: {
       F: [0, 0, 0, 0, 0, 0, 0],
@@ -1200,9 +1220,13 @@ function restoreSavedGame() {
     state.foodFacePenalty = Array.isArray(state.foodFacePenalty)
       ? state.foodFacePenalty
       : [0, 0, 0, 0, 0, 0, 0];
+    state.foodFaceBase = Array.isArray(state.foodFaceBase)
+      ? state.foodFaceBase
+      : [0, ...FOOD_FACES];
     state.blightedHarvestEras = Array.isArray(state.blightedHarvestEras)
       ? state.blightedHarvestEras
       : [];
+    state.foodYieldCollapsed = Boolean(state.foodYieldCollapsed);
     state.startTurnChoiceResolutions = [];
 
     $("skip-protection").checked = Boolean(
@@ -1333,6 +1357,10 @@ function beginTurn() {
   state.startTurnNotes = [];
   state.startTurnChoiceResolutions = [];
 
+  if (state.turn === 31 && !state.foodYieldCollapsed) {
+    applyFoodYieldCollapse();
+  }
+
   const completedProjects = [];
 
   state.kinProjects.forEach((project) => {
@@ -1362,19 +1390,20 @@ function beginTurn() {
     state.startTurnNotes.push(message);
   }
 
-  // Food above 20 spoils: 50% of the amount above 20, rounded down.
-  if (state.food > 20) {
+  const storageLimit = state.turn >= 15 ? communityCapacity() : 20;
+  const spoilageRate = state.turn >= 41 ? 0.75 : 0.5;
+  if (state.food > storageLimit) {
     if (state.waterProtectionUntilTurn >= state.turn) {
       const message = "Clear Mountain Water kept the stored Food from spoiling.";
       addLog(message);
       state.startTurnNotes.push(message);
     } else {
-      const spoiledFood = Math.floor((state.food - 20) / 2);
+      const spoiledFood = Math.floor((state.food - storageLimit) * spoilageRate);
 
       if (spoiledFood > 0) {
         state.food -= spoiledFood;
 
-        const message = `${spoiledFood} Food spoiled in storage.`;
+        const message = `${spoiledFood} Food spoiled above the ${storageLimit}-Food storage limit.`;
         addLog(message);
         state.startTurnNotes.push(message);
       }
@@ -1904,7 +1933,7 @@ function archiveBreakthroughChoices() {
   const faces = [];
   FOOD_FACES.forEach((base, index) => {
     const side = index + 1;
-    if (bonusFor("F", side) < 6) faces.push({ die: "F", side, label: `Food side ${side}`, value: foodFaceValue(side) });
+    if (foodFaceValue(side) < foodFaceMaximum(side)) faces.push({ die: "F", side, label: `Food side ${side}`, value: foodFaceValue(side) });
   });
   [3, 4, 5, 6].forEach((side) => {
     if (bonusFor("H", side) < 6) faces.push({ die: "H", side, label: `Hunt side ${side}`, value: side + bonusFor("H", side) });
@@ -2441,10 +2470,18 @@ function bonusFor(die, side) {
   );
 }
 
+function foodFaceBaseValue(side) {
+  return state.foodFaceBase?.[side] ?? FOOD_FACES[side - 1];
+}
+
+function foodFaceMaximum(side) {
+  return FOOD_FACES[side - 1] + upgradeLimit("F", side);
+}
+
 function foodFaceValue(side) {
   return Math.max(
     0,
-    FOOD_FACES[side - 1] +
+    foodFaceBaseValue(side) +
       bonusFor("F", side) -
       (state.foodFacePenalty?.[side] || 0)
   );
@@ -2453,12 +2490,10 @@ function foodFaceValue(side) {
 function availableUpgradeChoices() {
   const choices = [];
 
-  const foodFaces = FOOD_FACES;
-
-  foodFaces.forEach((baseValue, index) => {
+  FOOD_FACES.forEach((baseValue, index) => {
     const side = index + 1;
 
-    if (bonusFor("F", side) < upgradeLimit("F", side)) {
+    if (foodFaceValue(side) < foodFaceMaximum(side)) {
       choices.push({
         die: "F",
         side,
@@ -2508,6 +2543,10 @@ function hasAvailableUpgrade() {
 }
 
 function innovationCost(choice) {
+  if (choice.die === "F" && state.foodYieldCollapsed) {
+    return Math.max(1, foodFaceValue(choice.side));
+  }
+
   // Each further improvement costs one more saved Innovation than the last.
   return (state.upgrades[choice.die][choice.side] || 0) + 1;
 }
@@ -3105,9 +3144,13 @@ function showTechnologyUpgrade(research, isFree = false, onComplete = processCho
       evaluateAchievements();
 
       addLog(
-        `${choice.label} was upgraded to +${
-          state.upgrades[choice.die][choice.side]
-        }${isFree ? " for free." : "."}`
+        choice.die === "F" && state.foodYieldCollapsed
+          ? `${choice.label} increased to ${foodFaceValue(choice.side)} Food${
+              isFree ? " for free." : "."
+            }`
+          : `${choice.label} was upgraded to +${
+              state.upgrades[choice.die][choice.side]
+            }${isFree ? " for free." : "."}`
       );
 
       if (research) {
@@ -3431,8 +3474,9 @@ function rulesHTML() {
       <p>
         At the end of every turn, each person eats 1 Food. If the community
         cannot feed everyone, 1 person is lost.
-        At the beginning of a turn, Food above 20 spoils: lose 50% of the amount above 20, rounded down.
-        For example, 29 Food loses 4 Food.
+        Before Era III, Food above 20 spoils: lose 50% of the excess, rounded down.
+        Starting in Era III, Food above community Capacity spoils instead. Starting on Turn 41, 75% of Food above Capacity spoils.
+        At the beginning of Era IV, exhausted fields permanently halve every Food die face, rounded up; Food upgrades then continue from each reduced value.
       </p>
 
       <h3>Hunting and Threat</h3>
